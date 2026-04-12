@@ -15,27 +15,45 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 
 ## Installation
 
-Run these commands in the Claude Code chat box (not a terminal).
+### Option A: Manual install (recommended)
 
-### 1. Add the marketplace
+Clone the repo and symlink the skills into your global Claude Code skills directory:
+
+```bash
+# Clone (if not already cloned)
+git clone git@github.com:thethirdorigin/skills.git ~/github/thethirdorigin/skills
+
+# Symlink each skill to global skills directory
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/project-guide ~/.claude/skills/project-guide
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/prompt-best-practises ~/.claude/skills/prompt-best-practises
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/react-best-practises ~/.claude/skills/react-best-practises
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rust-best-practises ~/.claude/skills/rust-best-practises
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/reviewpr ~/.claude/skills/reviewpr
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/grill-me ~/.claude/skills/grill-me
+```
+
+To update: `git -C ~/github/thethirdorigin/skills pull` — symlinks pick up changes automatically.
+
+To install into a specific project instead of globally, symlink into `.claude/skills/` within the project directory.
+
+### Option B: Plugin marketplace (if `/plugin` is available)
+
+Run these commands in the Claude Code chat box:
 
 ```
 /plugin marketplace add thethirdorigin/skills
-```
-
-> **Private repo**: This requires GitHub access. Ensure either:
-> - SSH keys are configured (`git clone git@github.com:thethirdorigin/skills.git` works), or
-> - `GITHUB_TOKEN` / `GH_TOKEN` env variable is set with `repo` scope
-
-### 2. Install the plugin
-
-```
 /plugin install thethirdorigin-skills@thethirdorigin
 ```
 
-This installs all 6 skills. They will be available in every Claude Code session.
+> **Private repo**: Requires SSH keys or `GITHUB_TOKEN` / `GH_TOKEN` env variable with `repo` scope.
 
-> **Tip**: Type `/plugin` for an interactive UI to browse, install, and manage plugins. Use `/reload-plugins` after changes.
+### Option C: Per-project install via `npx skills`
+
+```bash
+npx skills add thethirdorigin/skills
+```
+
+> **Note**: This installs per-project into `.claude/skills/`. Run in each repo where you need the skills.
 
 ## Companion skills (recommended)
 
