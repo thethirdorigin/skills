@@ -159,6 +159,8 @@ Run data-gathering steps for each detected stack. Store all results internally f
 
 ### Rust projects
 
+**rustgraph is mandatory for Rust audits.** You MUST use the rustgraph skill to index and query the codebase — do not fall back to grep-only analysis. If you cannot locate the `rustgraph` binary (check `which rustgraph`, `target/release/rustgraph`, `~/github/thethirdorigin/rustgraph/target/release/rustgraph`), **stop and ask the user**: "I can't find the rustgraph binary. Where is it located? (e.g. full path to the binary, or the repo directory where it was built)". Do not proceed with the Rust audit until rustgraph is available.
+
 Use the **rustgraph** skill to:
 1. Locate the binary and index the workspace
 2. Run `rustgraph stats` for overview metrics
@@ -336,7 +338,7 @@ Search for these patterns using grep and source reading. Each confirmed pattern 
 | Issue | One sentence, factual, no hedging |
 | Impact | What goes wrong if this is not fixed |
 | Blast Radius | How many callers/consumers/dependents are affected |
-| Suggested Fix | One sentence, concrete action |
+| Fix | Provide an appropriate concrete fix based on the relevant best-practices skill rules. Cite the rule ID (e.g. `err-3`, `hook-2`, `async-5`) and describe what to change. The fix must be specific enough that a developer can implement it without further research — include the pattern, function, or type to use |
 
 ### Deduplicate
 
@@ -411,23 +413,23 @@ Use this exact structure:
 
 ### Critical
 
-| # | Issue | File:Line | Impact | Blast Radius |
-|---|-------|-----------|--------|--------------|
+| # | Issue | File:Line | Impact | Blast Radius | Fix |
+|---|-------|-----------|--------|--------------|-----|
 
 ### High
 
-| # | Issue | File:Line | Impact | Blast Radius |
-|---|-------|-----------|--------|--------------|
+| # | Issue | File:Line | Impact | Blast Radius | Fix |
+|---|-------|-----------|--------|--------------|-----|
 
 ### Medium
 
-| # | Issue | File:Line | Impact | Blast Radius |
-|---|-------|-----------|--------|--------------|
+| # | Issue | File:Line | Impact | Blast Radius | Fix |
+|---|-------|-----------|--------|--------------|-----|
 
 ### Low
 
-| # | Issue | File:Line | Impact | Blast Radius |
-|---|-------|-----------|--------|--------------|
+| # | Issue | File:Line | Impact | Blast Radius | Fix |
+|---|-------|-----------|--------|--------------|-----|
 
 ---
 
@@ -461,9 +463,9 @@ Omit severity sections that have zero findings. Omit Missing Defences if no defe
 
 <examples>
 <example>
-GOOD finding (evidence-backed, specific, actionable):
+GOOD finding (evidence-backed, specific, actionable, with fix):
 
-| 3 | `.expect()` on semaphore acquire in async request path | `multicall.rs:85` | Panics during graceful shutdown when Arc is dropped | 12 callers via call graph |
+| 3 | `.expect()` on semaphore acquire in async request path | `multicall.rs:85` | Panics during graceful shutdown when Arc is dropped | 12 callers via call graph | Per `err-1`: replace `.expect()` with `.acquire().await.map_err(\|e\| AppError::Semaphore(e))?` and handle the closed-semaphore case in the caller |
 </example>
 
 <example>
@@ -483,13 +485,13 @@ GOOD missing-defence finding:
 <example>
 GOOD efficiency finding:
 
-| 5 | N+1 query in order listing | `order_repo.rs:67` | Loop calls `get_customer()` per order instead of batch `get_customers(ids)` — 15 orders = 16 DB round-trips; batch into 2 | 8 callers via call graph |
+| 5 | N+1 query in order listing | `order_repo.rs:67` | Loop calls `get_customer()` per order instead of batch `get_customers(ids)` — 15 orders = 16 DB round-trips; batch into 2 | 8 callers via call graph | Per `perf-4`: collect IDs with `.map(\|o\| o.customer_id).collect()`, then call `get_customers_by_ids(ids)` in a single query returning a `HashMap<Id, Customer>` |
 </example>
 
 <example>
-BAD finding (vague, no evidence):
+BAD finding (vague, no evidence, no fix):
 
-| 1 | Error handling could be improved | various files | unclear | unknown |
+| 1 | Error handling could be improved | various files | unclear | unknown | — |
 </example>
 
 <example>
