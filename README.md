@@ -15,11 +15,17 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 
 ## Installation
 
+Run these commands in the Claude Code chat box (not a terminal).
+
 ### 1. Add the marketplace
 
 ```
 /plugin marketplace add thethirdorigin/skills
 ```
+
+> **Private repo**: This requires GitHub access. Ensure either:
+> - SSH keys are configured (`git clone git@github.com:thethirdorigin/skills.git` works), or
+> - `GITHUB_TOKEN` / `GH_TOKEN` env variable is set with `repo` scope
 
 ### 2. Install the plugin
 
@@ -28,6 +34,8 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 ```
 
 This installs all 6 skills. They will be available in every Claude Code session.
+
+> **Tip**: Type `/plugin` for an interactive UI to browse, install, and manage plugins. Use `/reload-plugins` after changes.
 
 ## Companion skills (recommended)
 
