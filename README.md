@@ -4,15 +4,16 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 
 ## Skills
 
-| Skill | Lines | What it covers |
-|-------|-------|----------------|
-| **project-guide** | 300 | 5-phase workflow for analysing any codebase and building features systematically. Orchestrates all other skills. |
-| **react-best-practises** | 348 | Architecture, hooks, state, TypeScript, error handling, security, accessibility. Complements Vercel performance skill. |
-| **rust-best-practises** | 445 | API design (C-\*/M-\* rules), error handling, ownership, async, traits, testing, documentation, linting, crate design. |
-| **rust-skills** | 179 rules | 179 concrete Rust rules with bad→good code examples. Memory optimisation, compiler tuning, async, testing, anti-patterns. Forked from [leonardomso/rust-skills](https://github.com/leonardomso/rust-skills) (MIT). |
-| **prompt-best-practises** | 264 | Meta-skill for authoring other skills. XML structuring, examples, role assignment, agentic patterns. |
-| **reviewpr** | 325 | Deep code review for GitHub PRs. Posts findings as line-specific comments. |
-| **grill-me** | 77 | Stress-test a plan or design through relentless questioning. |
+| Skill | Type | What it covers |
+|-------|------|----------------|
+| **project-guide** | Workflow | 6-phase workflow for analysing any codebase and building features systematically. Orchestrates all other skills. Includes rustgraph-based discovery and audit quality gate. |
+| **audit** | Workflow | Master code auditor. Detects the project stack, invokes the right sub-skills, gathers quantitative data, and produces a severity-ranked findings report. |
+| **reviewpr** | Workflow | Deep code review for GitHub PRs. Delegates analysis to audit, then posts findings as line-specific comments. |
+| **grill-me** | Workflow | Stress-test a plan or design through relentless questioning. |
+| **rust-best-practises** | Standards | ~280 rules across 20 categories. Error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, performance, project structure, linting, and anti-patterns. |
+| **react-best-practises** | Standards | 78 rules across 11 categories. Hooks, state, components, TypeScript, error handling, security, testing, accessibility, and anti-patterns. Complements Vercel performance skill. |
+| **rustgraph** | Tool | Tool-knowledge skill for the rustgraph binary. CLI reference, database schema, and reusable SQL query patterns for exploring Rust codebases via a knowledge graph. |
+| **prompt-best-practises** | Meta | Meta-skill for authoring other skills. XML structuring, examples, role assignment, agentic patterns. |
 
 ## Installation
 
@@ -26,12 +27,13 @@ git clone git@github.com:thethirdorigin/skills.git ~/github/thethirdorigin/skill
 
 # Symlink each skill to global skills directory
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/project-guide ~/.claude/skills/project-guide
-ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/prompt-best-practises ~/.claude/skills/prompt-best-practises
-ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/react-best-practises ~/.claude/skills/react-best-practises
-ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rust-best-practises ~/.claude/skills/rust-best-practises
-ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rust-skills ~/.claude/skills/rust-skills
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/audit ~/.claude/skills/audit
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/reviewpr ~/.claude/skills/reviewpr
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/grill-me ~/.claude/skills/grill-me
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rust-best-practises ~/.claude/skills/rust-best-practises
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/react-best-practises ~/.claude/skills/react-best-practises
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rustgraph ~/.claude/skills/rustgraph
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/prompt-best-practises ~/.claude/skills/prompt-best-practises
 ```
 
 To update: `git -C ~/github/thethirdorigin/skills pull` — symlinks pick up changes automatically.
@@ -86,16 +88,31 @@ This installs (per-project, into `.claude/skills/`):
 
 ```
 project-guide (orchestrator)
-├── Phase 1: Context Gathering ─── discovers project structure, tech stack, git history
+├── Phase 1: Context Gathering
+│   ├── discovers project structure, tech stack, git history
+│   └── Rust projects: indexes codebase via rustgraph skill
 ├── Phase 2: Pattern Identification ─── finds conventions, shared code, anti-patterns
 ├── Phase 3: Analysis ─── cross-references language-specific skills:
-│   ├── rust-best-practises ─── for Rust code (guidelines + principles)
-│   │   └── rust-skills ─── 179 concrete rules with code examples
-│   ├── react-best-practises ─── for React/TypeScript code
+│   ├── rust-best-practises ─── ~280 Rust rules (ownership, API, memory, async, ...)
+│   ├── react-best-practises ─── 78 React/TS rules (hooks, state, security, a11y, ...)
 │   │   └── (companion) vercel-react-best-practices ─── for performance
-│   └── (future) terraform-best-practises, solidity-best-practises, etc.
+│   └── (future) terraform-best-practises, python-best-practises, etc.
 ├── Phase 4: Implementation ─── enforces consistency, checklists, documentation
-└── Phase 5: Questions ─── asks when requirements are unclear (with recommendations)
+├── Phase 5: Questions ─── asks when requirements are unclear (with recommendations)
+└── Phase 6: Quality Gate ─── runs audit skill to verify implementation
+
+audit (code quality orchestrator)
+├── Detects stack (Rust, React/TS, Python, Go, ...)
+├── Rust: rust-best-practises + rustgraph (knowledge graph queries)
+├── React/TS: react-best-practises
+├── Cross-correlates findings, deduplicates, ranks by severity
+└── Produces evidence-based report with file:line references
+
+reviewpr (PR wrapper)
+├── Gathers PR context via gh CLI (diff, comments, changed files)
+├── Delegates code analysis to audit skill
+├── Deduplicates against existing reviewer comments
+└── Posts approved findings as inline GitHub comments
 
 prompt-best-practises ─── used when creating or improving any of the above skills
 ```
@@ -110,9 +127,12 @@ Skills activate automatically based on what you're doing:
 | "Create a new React component" | react-best-practises |
 | "Starting work on a new feature" | project-guide |
 | "What should I know about this project?" | project-guide |
-| "I want to create a new skill" | prompt-best-practises |
+| "Audit this codebase" | audit |
+| "Find code smells" | audit |
 | "Review this PR" | reviewpr |
 | "Grill me on this design" | grill-me |
+| "I want to create a new skill" | prompt-best-practises |
+| "Use rustgraph" / "Query knowledge graph" | rustgraph |
 
 ## Adding new skills
 
@@ -121,24 +141,30 @@ Skills activate automatically based on what you're doing:
 3. Use the **prompt-best-practises** skill to structure the content
 4. If the skill is language-specific, add a checklist to **project-guide** Phase 4
 5. Update **project-guide** Phase 3 and the Extensibility section to cross-reference it
-6. Bump the version in `marketplace.json`
+6. If the skill provides coding standards, register it in **audit** Step 1 (stack detection table)
+7. Bump the version in `marketplace.json`
 
 ## Repository structure
 
 ```
 .claude-plugin/
-  marketplace.json                    ← marketplace manifest
+  marketplace.json                    <- marketplace manifest
 plugins/thethirdorigin-skills/
   .claude-plugin/
-    plugin.json                       ← plugin manifest
+    plugin.json                       <- plugin manifest
   skills/
-    project-guide/SKILL.md            ← orchestrator (15KB)
-    prompt-best-practises/SKILL.md    ← meta-skill for skill authoring (10KB)
-    react-best-practises/SKILL.md     ← React/TypeScript quality (15KB)
-    rust-best-practises/SKILL.md      ← Rust quality (21KB)
-    rust-skills/SKILL.md + rules/     ← 179 concrete Rust rules (forked, MIT)
-    reviewpr/SKILL.md                 ← PR review (14KB)
-    grill-me/SKILL.md                 ← design interviews (3KB)
+    project-guide/SKILL.md            <- orchestrator, 6-phase workflow
+    audit/SKILL.md                    <- master code auditor
+    reviewpr/SKILL.md                 <- PR review (delegates to audit)
+    grill-me/SKILL.md                 <- design interviews
+    rust-best-practises/
+      SKILL.md                        <- ~280 Rust rules across 20 categories
+      rules/                          <- individual rule files (287 .md files)
+    react-best-practises/
+      SKILL.md                        <- 78 React/TS rules across 11 categories
+      rules/                          <- individual rule files
+    rustgraph/SKILL.md                <- rustgraph tool knowledge
+    prompt-best-practises/SKILL.md    <- meta-skill for skill authoring
 ```
 
 ## Sources
@@ -148,10 +174,12 @@ These skills were built from authoritative sources:
 **Rust**
 - [Rust API Guidelines Checklist](https://rust-lang.github.io/api-guidelines/checklist.html) — C-\* rules for API design
 - [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/guidelines/index.html) — 60+ M-\* production rules
+- [Rust Performance Book](https://nnethercote.github.io/perf-book/) — Practical performance optimisation
 - [Rust Style Guide](https://doc.rust-lang.org/style-guide/) — Official formatting conventions
 - [Apollo Rust Best Practices](https://github.com/apollographql/rust-best-practices) — Production patterns
 - [Rust Clean Code](https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce)
-- [leonardomso/rust-skills](https://github.com/leonardomso/rust-skills) — 179 concrete rules with code examples (MIT, forked into this repo)
+- [leonardomso/rust-skills](https://github.com/leonardomso/rust-skills) — Concrete rules with code examples (MIT, merged into rust-best-practises)
+- [rustgraph](https://github.com/thethirdorigin/rustgraph) — Knowledge graph builder for Rust codebases
 
 **React/TypeScript**
 - [React Rules](https://react.dev/reference/rules) — Official component and hook rules
