@@ -48,9 +48,32 @@ pub fn parse_config(input: &str) -> Result<Config, ConfigError> {
 }
 ```
 
+## Simplify Repeated Setup with Doc Helpers
+
+When multiple examples share complex setup, extract a helper to reduce boilerplate:
+
+```rust
+/// Helper used in doc examples only.
+/// ```
+/// # fn make_config() -> Config { Config::default() }
+/// let config = make_config();
+/// assert!(config.is_valid());
+/// ```
+```
+
+Use `# ` prefix to hide setup lines from rendered docs while keeping them compilable:
+
+```rust
+/// # use mylib::{Config, Database};
+/// # let db = Database::in_memory();
+/// let config = Config::load(&db)?;
+/// # Ok::<(), mylib::Error>(())
+```
+
 ## References
 
 - [C-EXAMPLE](https://rust-lang.github.io/api-guidelines/documentation.html#examples-use--not-try-not-unwrap-c-question-mark) — Every public API item should include examples
+- [Rust Design Patterns - Easy Doc Initialization](https://rust-unofficial.github.io/patterns/idioms/rustdoc-init.html)
 
 ## See Also
 

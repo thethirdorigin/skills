@@ -1,10 +1,10 @@
 ---
 name: rust-best-practises
 description: >
-  Rust coding standards, API design, and best practices with 121 rules across 16 categories.
+  Rust coding standards, API design, and best practices with 132 rules across 16 categories.
   Use when writing, reviewing, or refactoring Rust code. Covers error handling, ownership,
   API design, async patterns, naming, testing, documentation, linting, performance, and
-  common anti-patterns. References Rust API Guidelines (C-*) and Microsoft Rust Guidelines (M-*).
+  common anti-patterns.
 triggers:
   - writing Rust code
   - working on backend
@@ -23,11 +23,7 @@ triggers:
 <context>
 You are a senior Rust engineer focused on writing safe, performant, idiomatic Rust code. Before implementing, always discover the project's architecture, workspace structure, and existing patterns. Match them — do not impose your own preferences.
 
-This skill references two authoritative guideline systems:
-- **C-*** rules from the Rust API Guidelines (rust-lang.github.io/api-guidelines)
-- **M-*** rules from the Microsoft Rust Guidelines (microsoft.github.io/rust-guidelines)
-
-**Companion skill**: **rust-skills** (179 concrete rules with bad→good code examples across memory optimisation, compiler tuning, async patterns, testing, and anti-patterns). Installed alongside this skill in the thethirdorigin marketplace.
+**Companion skill**: **rust-skills** (concrete rules with bad→good code examples across memory optimisation, compiler tuning, async patterns, testing, and anti-patterns). Installed alongside this skill in the thethirdorigin marketplace.
 </context>
 
 ## When to Apply
@@ -62,21 +58,21 @@ Before writing any Rust code, perform these discovery steps:
 | Priority | Category | Impact | Prefix | Rules |
 |----------|----------|--------|--------|-------|
 | 1 | Error Handling | CRITICAL | `err-` | 8 |
-| 2 | Ownership and Borrowing | CRITICAL | `own-` | 6 |
-| 3 | API Design | HIGH | `api-` | 20 |
+| 2 | Ownership and Borrowing | CRITICAL | `own-` | 9 |
+| 3 | API Design | HIGH | `api-` | 23 |
 | 4 | Async Patterns | HIGH | `async-` | 6 |
-| 5 | Unsafe Code | HIGH | `unsafe-` | 5 |
-| 6 | Generics and Traits | MEDIUM | `trait-` | 7 |
+| 5 | Unsafe Code | HIGH | `unsafe-` | 6 |
+| 6 | Generics and Traits | MEDIUM | `trait-` | 8 |
 | 7 | Naming Conventions | MEDIUM | `name-` | 10 |
 | 8 | Testing | MEDIUM | `test-` | 7 |
 | 9 | Documentation | MEDIUM | `doc-` | 10 |
-| 10 | Iterators and Functional Chains | MEDIUM | `iter-` | 5 |
+| 10 | Iterators and Functional Chains | MEDIUM | `iter-` | 6 |
 | 11 | Performance | MEDIUM | `perf-` | 6 |
 | 12 | Static Verification and Linting | LOW | `lint-` | 7 |
 | 13 | Code Formatting | LOW | `fmt-` | 8 |
 | 14 | Structured Logging | LOW | `log-` | 5 |
 | 15 | Dependencies and Crate Design | LOW | `crate-` | 6 |
-| 16 | Anti-patterns | REFERENCE | `anti-` | 5 |
+| 16 | Anti-patterns | REFERENCE | `anti-` | 7 |
 
 ---
 
@@ -101,6 +97,9 @@ Before writing any Rust code, perform these discovery steps:
 - [`own-arc-dyn-trait`](rules/own-arc-dyn-trait.md) - Use `Arc<dyn Trait + Send + Sync>` for DI trait objects
 - [`own-move-intentional`](rules/own-move-intentional.md) - Prefer moves over clones for ownership transfer
 - [`own-detect-cloning`](rules/own-detect-cloning.md) - Detect unnecessary cloning through review and profiling
+- [`own-mem-replace`](rules/own-mem-replace.md) - Use `mem::take`/`mem::replace` to move values out of enums
+- [`own-temporary-mut`](rules/own-temporary-mut.md) - Rebind as immutable after the preparation phase
+- [`own-return-on-error`](rules/own-return-on-error.md) - Return consumed arguments inside the error type
 
 ### 3. API Design (HIGH)
 
@@ -124,6 +123,9 @@ Before writing any Rust code, perform these discovery steps:
 - [`api-service-clone`](rules/api-service-clone.md) - Service types use `Arc<Inner>` for cheap `Clone`
 - [`api-private-fields`](rules/api-private-fields.md) - Struct fields private with accessor methods
 - [`api-sealed-trait`](rules/api-sealed-trait.md) - Seal traits to prevent external implementations
+- [`api-non-exhaustive`](rules/api-non-exhaustive.md) - Use `#[non_exhaustive]` for future-proof enums/structs
+- [`api-compose-structs`](rules/api-compose-structs.md) - Decompose large structs for partial borrowing
+- [`api-raii-guards`](rules/api-raii-guards.md) - Use RAII guards for automatic resource cleanup
 
 ### 4. Async Patterns (HIGH)
 
@@ -141,6 +143,7 @@ Before writing any Rust code, perform these discovery steps:
 - [`unsafe-soundness`](rules/unsafe-soundness.md) - Safe functions must never allow undefined behaviour
 - [`unsafe-safety-docs`](rules/unsafe-safety-docs.md) - Document safety contracts with `// SAFETY:` comments
 - [`unsafe-pass-miri`](rules/unsafe-pass-miri.md) - Validate unsafe code with Miri
+- [`unsafe-small-modules`](rules/unsafe-small-modules.md) - Contain unsafe in small, focused modules
 
 ### 6. Generics and Traits (MEDIUM)
 
@@ -151,6 +154,7 @@ Before writing any Rust code, perform these discovery steps:
 - [`trait-single-responsibility`](rules/trait-single-responsibility.md) - Keep traits focused, single responsibility
 - [`trait-supertraits`](rules/trait-supertraits.md) - Use supertraits to compose requirements
 - [`trait-avoid-sized`](rules/trait-avoid-sized.md) - Avoid `Self: Sized` unless necessary
+- [`trait-strategy`](rules/trait-strategy.md) - Strategy pattern via traits or closures
 
 ### 7. Naming Conventions (MEDIUM)
 
@@ -195,6 +199,7 @@ Before writing any Rust code, perform these discovery steps:
 - [`iter-zero-cost`](rules/iter-zero-cost.md) - Trust zero-cost abstractions for iterators
 - [`iter-option-combinators`](rules/iter-option-combinators.md) - Use `Option`/`Result` combinators
 - [`iter-no-intermediate-vec`](rules/iter-no-intermediate-vec.md) - Avoid collecting intermediate iterators
+- [`iter-option-as-iter`](rules/iter-option-as-iter.md) - Treat `Option` as a zero-or-one element iterator
 
 ### 11. Performance (MEDIUM)
 
@@ -250,6 +255,8 @@ Before writing any Rust code, perform these discovery steps:
 - [`anti-monolith-function`](rules/anti-monolith-function.md) - Split monolithic multi-responsibility functions
 - [`anti-primitive-obsession`](rules/anti-primitive-obsession.md) - Use newtypes where raw strings/ints are used
 - [`anti-bool-params`](rules/anti-bool-params.md) - Replace boolean parameters with enums
+- [`anti-deny-warnings`](rules/anti-deny-warnings.md) - Use specific lint names, not blanket `#[deny(warnings)]`
+- [`anti-deref-inheritance`](rules/anti-deref-inheritance.md) - Never misuse `Deref` to simulate struct inheritance
 
 ---
 
@@ -287,4 +294,5 @@ Reference these guidelines by task type:
 - [Microsoft Rust Guidelines (Agent-Optimised)](https://microsoft.github.io/rust-guidelines/agents/all.txt) — Full guideline text in agent-consumable format
 - [Rust Style Guide](https://doc.rust-lang.org/style-guide/) — Official formatting and style conventions
 - [Apollo GraphQL Rust Best Practices](https://github.com/apollographql/rust-best-practices) — Production Rust patterns from Apollo Engineering
+- [Rust Design Patterns](https://rust-unofficial.github.io/patterns/) — Idioms, design patterns, and anti-patterns for idiomatic Rust
 - [Rust Clean Code](https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce) — Clean code principles applied to Rust

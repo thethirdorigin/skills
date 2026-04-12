@@ -51,7 +51,30 @@ registry.register(Box::new(MetricsPlugin::new()));
 registry.register(Box::new(AuditPlugin::new()));
 ```
 
+## On-Stack Dynamic Dispatch
+
+When you need dynamic dispatch but want to avoid heap allocation, use `&dyn Trait` references instead of `Box<dyn Trait>`:
+
+```rust
+fn log_value(use_stderr: bool, value: &str) {
+    // Both branches produce a &dyn Write — no heap allocation
+    let mut sink: &dyn std::io::Write = if use_stderr {
+        &std::io::stderr()
+    } else {
+        &std::io::stdout()
+    };
+    writeln!(sink, "{}", value).unwrap();
+}
+```
+
+This avoids the `Box` allocation while still allowing runtime dispatch. Use it when the trait object's lifetime is bounded by the current scope.
+
+## References
+
+- [Rust Design Patterns - On-Stack Dynamic Dispatch](https://rust-unofficial.github.io/patterns/idioms/on-stack-dyn-dispatch.html)
+
 ## See Also
 
 - [trait-static-dispatch](trait-static-dispatch.md) - When static dispatch is preferred
 - [trait-object-design](trait-object-design.md) - Designing object-safe traits
+- [trait-strategy](trait-strategy.md) - Strategy pattern via traits or closures

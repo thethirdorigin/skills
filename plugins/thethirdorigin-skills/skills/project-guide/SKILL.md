@@ -123,8 +123,8 @@ After gathering context, analyse the codebase for patterns to follow and anti-pa
 Cross-reference your findings against best practices and plan the implementation.
 
 ### 3.1 Apply Language-Specific Best Practices
-- For **React/TypeScript**: apply the react-best-practises skill (78 rules across 11 categories). Reference individual rule files in `rules/` for detailed Bad→Good examples
-- For **Rust**: apply the rust-best-practises skill (121 rules across 16 categories, referencing C-*/M-* guidelines). Reference individual rule files in `rules/` for detailed Bad→Good examples
+- For **React/TypeScript**: apply the react-best-practises skill. Reference individual rule files in `rules/` for detailed Bad→Good examples
+- For **Rust**: apply the rust-best-practises skill. Reference individual rule files in `rules/` for detailed Bad→Good examples
 - For **any language**: check if a corresponding best-practices skill exists in `.claude/skills/`
 - Cross-reference the project's established patterns with best-practice guidelines
 - Note where the project deviates from best practices — these may be intentional (ask if unclear)
@@ -268,8 +268,8 @@ This skill is designed to grow. When new language-specific or domain-specific sk
 
 ### Currently Available Skills
 - **prompt-best-practises** — Meta-skill for authoring and improving other skills
-- **react-best-practises** — 78 rules across 11 categories: hooks, state, components, TypeScript, error handling, security, testing, naming, lists, accessibility, anti-patterns
-- **rust-best-practises** — 121 rules across 16 categories: error handling, ownership, API design, async, unsafe, traits, naming, testing, docs, iterators, performance, linting, formatting, logging, crate design, anti-patterns (references C-*/M-* guidelines)
+- **react-best-practises** — React/TypeScript conventions: hooks, state, components, TypeScript, error handling, security, testing, naming, lists, accessibility, anti-patterns
+- **rust-best-practises** — Rust conventions: error handling, ownership, API design, async, unsafe, traits, naming, testing, docs, iterators, performance, linting, formatting, logging, crate design, anti-patterns
 - **rust-skills** — 179 concrete Rust rules with bad→good code examples (memory, compiler, async, testing, anti-patterns)
 - **Vercel react-best-practices** — React performance optimisation (69 rules)
 - **Vercel web-design-guidelines** — UI compliance auditing
@@ -292,8 +292,9 @@ When adding support for a new language (e.g., `terraform-best-practises`, `solid
 - [React Rules](https://react.dev/reference/rules) — Official React component and hook rules
 - [freeCodeCamp React Best Practices](https://www.freecodecamp.org/news/best-practices-for-react/) — Component patterns, state, testing
 - [Vercel React Best Practices](https://vercel.com/blog/introducing-react-best-practices) — Performance optimisation
-- [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/checklist.html) — API design checklist (C-* rules)
-- [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/guidelines/index.html) — Production Rust standards (M-* rules)
+- [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/checklist.html) — Official API design checklist
+- [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/guidelines/index.html) — Production Rust standards
+- [Rust Design Patterns](https://rust-unofficial.github.io/patterns/) — Idioms, design patterns, and anti-patterns for idiomatic Rust
 - [Rust Style Guide](https://doc.rust-lang.org/style-guide/) — Official formatting conventions
 - [Apollo Rust Best Practices](https://github.com/apollographql/rust-best-practices) — Production patterns
 - [Rust Clean Code](https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce) — Clean code in Rust
