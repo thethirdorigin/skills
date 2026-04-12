@@ -20,9 +20,11 @@ triggers:
 <context>
 You are a senior engineer joining a project. Before writing any code, you systematically analyse the codebase to understand its architecture, conventions, patterns, and quality standards. You match existing patterns rather than imposing your own preferences, and you leave the codebase better than you found it.
 
-This guide orchestrates a 5-phase workflow. For language-specific rules, defer to the appropriate skill:
+This guide orchestrates a 6-phase workflow. For language-specific rules, defer to the appropriate skill:
 - **React/TypeScript code**: react-best-practises skill
-- **Rust code**: rust-best-practises skill
+- **Rust code**: rust-best-practises skill (unified rulebook, ~280 rules)
+- **Rust codebase exploration**: rustgraph skill (knowledge graph queries)
+- **Code quality verification**: audit skill (evidence-based assessment)
 - **Writing new skills**: prompt-best-practises skill
 
 Additional companion skills (install per-project with `npx skills add vercel-labs/agent-skills`):
@@ -72,6 +74,16 @@ When starting a new session or feature, ALWAYS perform these discovery steps bef
 - List the specific directories and modules that will be touched
 - Find similar features already implemented — these are your pattern templates
 - Read the module structure where new code will live
+
+### 1.6 Rust Projects: Knowledge Graph Discovery
+For Rust projects, use the **rustgraph** skill to build a richer structural picture:
+- Index the workspace: `rustgraph index . -o rustgraph.db`
+- Query overview stats for entity counts (files, structs, traits, functions, edges)
+- Identify layer boundaries by querying module structure and dependency edges
+- Map high fan-in functions (many callers) to understand critical code paths
+- Query the dependency graph to understand crate relationships
+
+This gives you quantitative context that file browsing alone cannot provide. The knowledge graph persists for the session and can be reused in Phase 6 (Quality Gate).
 </instructions>
 
 ---
@@ -123,8 +135,8 @@ After gathering context, analyse the codebase for patterns to follow and anti-pa
 Cross-reference your findings against best practices and plan the implementation.
 
 ### 3.1 Apply Language-Specific Best Practices
-- For **React/TypeScript**: apply the react-best-practises skill. Reference individual rule files in `rules/` for detailed Bad→Good examples
-- For **Rust**: apply the rust-best-practises skill. Reference individual rule files in `rules/` for detailed Bad→Good examples
+- For **React/TypeScript**: apply the react-best-practises skill (78 rules). Reference individual rule files in `rules/` for detailed Bad→Good examples
+- For **Rust**: apply the rust-best-practises skill (~280 rules covering error handling, ownership, memory, API design, async, compiler optimisation, type safety, and more). Reference individual rule files in `rules/` for detailed Bad→Good examples
 - For **any language**: check if a corresponding best-practices skill exists in `.claude/skills/`
 - Cross-reference the project's established patterns with best-practice guidelines
 - Note where the project deviates from best practices — these may be intentional (ask if unclear)
@@ -242,6 +254,34 @@ Ask BEFORE proceeding when:
 
 ---
 
+## Phase 6: Quality Gate
+
+<instructions>
+After implementation is complete, run the **audit** skill to verify the work meets quality standards. This is the "leave the codebase better than you found it — and prove it" step.
+
+### 6.1 Scope the Audit
+- Focus the audit on the files changed or added during implementation
+- Include any files touched as part of boy-scout-rule improvements
+- For Rust projects, reuse the rustgraph database from Phase 1.6 (re-index if files changed significantly)
+
+### 6.2 Run the Audit
+- Invoke the audit skill against the changed files
+- The audit will detect the stack, apply the relevant best-practice rules, and produce severity-ranked findings
+
+### 6.3 Address Findings
+- **Critical**: must be fixed before considering the feature done
+- **High**: should be fixed as part of this work unless the scope is explicitly limited
+- **Medium**: fix if straightforward; otherwise note as a follow-up
+- **Low**: optional; fix if they fall within the changed files
+
+### 6.4 Confirm
+- Re-run the audit on any files that were changed during finding resolution
+- Confirm no new Critical or High findings were introduced
+- Report the final state: "Quality gate passed: 0 Critical, 0 High, N Medium (noted), M Low (optional)"
+</instructions>
+
+---
+
 ## Principles
 
 <instructions>
@@ -268,9 +308,10 @@ This skill is designed to grow. When new language-specific or domain-specific sk
 
 ### Currently Available Skills
 - **prompt-best-practises** — Meta-skill for authoring and improving other skills
-- **react-best-practises** — React/TypeScript conventions: hooks, state, components, TypeScript, error handling, security, testing, naming, lists, accessibility, anti-patterns
-- **rust-best-practises** — Rust conventions: error handling, ownership, API design, async, unsafe, traits, naming, testing, docs, iterators, performance, linting, formatting, logging, crate design, anti-patterns
-- **rust-skills** — 179 concrete Rust rules with bad→good code examples (memory, compiler, async, testing, anti-patterns)
+- **react-best-practises** — React/TypeScript conventions: hooks, state, components, TypeScript, error handling, security, testing, naming, lists, accessibility, anti-patterns (78 rules)
+- **rust-best-practises** — Comprehensive Rust rulebook: error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, iterators, performance, project structure, linting, formatting, logging, crate design, anti-patterns (~280 rules)
+- **rustgraph** — Tool knowledge for the rustgraph binary: indexing Rust codebases into a SQLite knowledge graph, CLI reference, reusable SQL query patterns
+- **audit** — Master code auditor: detects the project stack, orchestrates sub-skills (rust-best-practises + rustgraph for Rust, react-best-practises for React/TS), produces evidence-based severity-ranked findings
 - **Vercel react-best-practices** — React performance optimisation (69 rules)
 - **Vercel web-design-guidelines** — UI compliance auditing
 - **Vercel composition-patterns** — React component composition patterns
