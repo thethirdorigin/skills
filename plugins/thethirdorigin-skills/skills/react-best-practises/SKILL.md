@@ -1,6 +1,10 @@
 ---
 name: react-best-practises
-description: React and TypeScript conventions and best practices for architecture, state management, hooks, testing, error handling, security, and accessibility. Complements Vercel react-best-practices skill (which covers performance). Use when writing, reviewing, or refactoring React/TypeScript code.
+description: >
+  React and TypeScript conventions and best practices with 78 rules across 11 categories.
+  Use when writing, reviewing, or refactoring React/TypeScript code. Covers hooks,
+  state management, component architecture, TypeScript patterns, error handling,
+  security, testing, accessibility, and common anti-patterns.
 triggers:
   - writing React code
   - working on frontend
@@ -11,8 +15,6 @@ triggers:
   - adding a page
   - form implementation
   - React testing
-  - React state management
----
   - React state management
 ---
 
@@ -26,7 +28,16 @@ This skill covers architecture, correctness, and quality. For performance optimi
 **Companion skill**: Vercel react-best-practices (69 performance rules). Install per-project: `npx skills add vercel-labs/agent-skills`
 </context>
 
-## 1. Architecture Discovery
+## When to Apply
+
+Reference these guidelines when:
+- Writing new React components, hooks, or pages
+- Implementing forms, lists, or async data flows
+- Reviewing code for correctness, accessibility, or type safety
+- Refactoring existing frontend code
+- Setting up state management or error handling
+
+## Architecture Discovery
 
 <instructions>
 Before writing any React code, perform these discovery steps:
@@ -44,141 +55,12 @@ Before writing any React code, perform these discovery steps:
 - Check the existing test setup: test runner, testing library, test file locations
 </instructions>
 
-## 2. Component Architecture
-
-<instructions>
-### Functional Components Only
-- Use function declarations for components (not arrow function assignments)
-- One page-level component per file
-- Smaller helper components may coexist in the same file if they are not exported
-
-### Composition Over Inheritance
-- Compose with `children` and render props
-- Use compound component pattern for related elements (e.g., Tabs + TabPanel + TabList)
-- Extract shared logic into custom hooks, not Higher-Order Components
-
-### File Organisation
-- Match the existing project structure discovered in Phase 1
-- Common patterns:
-  - Pages: `pages/` or `app/` directory, one file per route
-  - Components: `components/` directory, one directory per complex component
-  - Hooks: `hooks/` directory for custom hooks
-  - Utils: `utils/` or `lib/` for pure utility functions
-  - Types: `types/` for shared TypeScript interfaces
-  - Stores: `stores/` for state management stores
-
-### Component Purity
-- Components must be pure and idempotent: same inputs produce same outputs
-- Side effects belong in `useEffect`, event handlers, or server actions — never in the render body
-- Do not mutate props, state, or hook return values after receiving them
-- Perform all mutations BEFORE creating JSX
-</instructions>
-
-<anti-patterns>
-- Class components (use functional components with hooks)
-- Calling component functions directly: `MyComponent()` — always use JSX `<MyComponent />`
-- Deep prop drilling beyond 2 levels — use composition, context, or state management
-- Inline styles — prefer CSS classes matching the project's styling approach
-- Excessive `<div>` nesting — use fragments `<>...</>` and semantic HTML
-- Defining components inside other components (causes remount on every render)
-</anti-patterns>
-
-## 3. Hooks Rules and Patterns
-
-<instructions>
-### Critical Rules (ESLint-enforced)
-- Call hooks at the top level ONLY — never inside conditions, loops, or nested functions
-- Call hooks ONLY from React function components or custom hooks — never from regular functions
-- Call hooks before any early returns
-
-### Hook-Specific Patterns
-- **useState**: use callback for expensive initialisation: `useState(() => parseData(raw))`
-- **useEffect**: always include a dependency array; always return cleanup for subscriptions/timers
-- **useReducer**: switch from useState when a component has 4+ related state variables
-- **useMemo/useCallback**: profile first — do not premature-optimise
-- **Custom hooks**: prefix with `use`, extract when logic is reused 2+ times
-
-### Dependency Arrays
-- Include ALL reactive values used inside the hook
-- Enable `eslint-plugin-react-hooks` exhaustive-deps rule
-- If a dependency changes too often, refactor the code — do not lie about dependencies
-</instructions>
-
-<anti-patterns>
-- Hooks inside conditions or loops
-- useEffect for derived state — calculate inline or use useMemo instead
-- Missing dependencies in useEffect/useMemo/useCallback arrays
-- useEffect on every render (missing dependency array)
-- useEffect as an event handler — put interaction logic in event handlers directly
-</anti-patterns>
-
-## 4. State Management
-
-<instructions>
-### Local State
-- `useState` for simple UI state: toggles, search text, filter values, pagination
-- `useReducer` for complex state with multiple interdependent fields
-- Derive data inline: compute `filteredRows` -> `sortedRows` -> `paginatedRows` rather than storing derived state
-
-### Global State
-- Identify the existing store pattern in the project (Zustand, Redux, Context, etc.)
-- Keep stores small and focused: one per domain concern
-- Use selectors to prevent unnecessary re-renders
-- Do not lift every piece of state to global — keep state as close to usage as possible
-
-### Server State
-- Use the project's data fetching library (React Query, SWR, etc.) for all API data
-- Separate queries from mutations
-- Configure `staleTime` and `cacheTime` appropriately
-- Use consistent query key patterns matching existing code
-
-### Immutability — Critical
-- NEVER mutate state directly
-- Objects: use spread operator `{...state, field: newValue}` or `structuredClone`
-- Arrays: use `.map()`, `.filter()`, `.concat()`, spread — NEVER `.push()`, `.splice()`, or index assignment
-- Values used in props, state, hooks, or JSX become immutable after creation
-</instructions>
-
-<anti-patterns>
-- Storing derived data in state (calculate it instead)
-- Lifting every piece of state to global scope
-- Direct state mutation: `state.items.push(newItem)`
-- Using array indices as state keys
-- Context API for frequently-updating values (causes full subtree re-renders)
-</anti-patterns>
-
-## 5. TypeScript Patterns
-
-<instructions>
-- Type ALL component props with `interface` (not type alias for component props)
-- Never use `any` — use `unknown` and narrow, or use specific types
-- Use discriminated unions for state machines and loading/error/success patterns:
-  ```
-  type State =
-    | { status: 'idle' }
-    | { status: 'loading' }
-    | { status: 'error'; error: Error }
-    | { status: 'success'; data: T }
-  ```
-- Export types alongside components when consumers need them
-- Use the `satisfies` operator for type-safe object literals
-- Use generics for reusable utilities, hooks, and components
-- Prefer `interface` for object shapes (extendable) and `type` for unions/intersections
-</instructions>
-
-<anti-patterns>
-- `any` type anywhere — always use proper typing
-- Non-null assertions (`!`) without clear justification
-- Type casting (`as`) to silence errors — fix the underlying type issue
-- Untyped event handlers: use `React.MouseEvent<HTMLButtonElement>` etc.
-</anti-patterns>
-
-## 6. Shared Component and Styling Discovery
+## Shared Component and Styling Discovery
 
 <instructions>
 ### Component Reuse
 - ALWAYS search for existing shared/common components before building custom
-- Check the UI component library first (discovered in Phase 1)
+- Check the UI component library first (discovered above)
 - Check the shared component directory for project-specific components
 - If a component exists but needs modification, extend it — do not duplicate
 
@@ -200,147 +82,165 @@ Before writing any React code, perform these discovery steps:
 - Follow existing validation patterns
 </instructions>
 
-## 7. Error Handling
+---
 
-<instructions>
-### Three-Layer Approach
-1. **Error Boundaries**: at route or section level, catch rendering errors, show fallback UI
-2. **try-catch**: in async event handlers and data fetching, with user-facing messages
-3. **Toast/notification system**: for transient errors (identify the project's toast library)
+## Rule Categories by Priority
 
-### Patterns
-- Search for existing ErrorBoundary components before creating new ones
-- Never swallow errors silently — always log or display
-- Handle loading, error, and success states for all async operations
-- Use inline error states for form validation
-- Log errors to console in development, to a logging service in production
-</instructions>
+| Priority | Category | Impact | Prefix | Rules |
+|----------|----------|--------|--------|-------|
+| 1 | Hooks Rules and Patterns | CRITICAL | `hook-` | 10 |
+| 2 | State Management | CRITICAL | `state-` | 10 |
+| 3 | Component Architecture | HIGH | `comp-` | 10 |
+| 4 | TypeScript Patterns | HIGH | `ts-` | 7 |
+| 5 | Error Handling | HIGH | `err-` | 6 |
+| 6 | Security | HIGH | `sec-` | 6 |
+| 7 | Testing | MEDIUM | `test-` | 7 |
+| 8 | Code Quality and Naming | MEDIUM | `name-` | 7 |
+| 9 | List Rendering | MEDIUM | `list-` | 3 |
+| 10 | Accessibility | MEDIUM | `a11y-` | 7 |
+| 11 | Anti-patterns | REFERENCE | `anti-` | 5 |
 
-<anti-patterns>
-- Missing error handling for async operations
-- Showing raw error messages to users
-- Error boundaries around individual components (too granular)
-- Silently catching and ignoring errors
-</anti-patterns>
+---
 
-## 8. Security
+## Quick Reference
 
-<instructions>
-- NEVER use `dangerouslySetInnerHTML` without sanitising with a library like DOMPurify
-- Never trust user input — validate on both client and server
-- Use HttpOnly cookies for auth tokens, not localStorage
-- Sanitise URL parameters before using in queries or rendering
-- No secrets, API keys, or tokens in client-side code
-- Keep dependencies updated to patch known vulnerabilities
-</instructions>
+### 1. Hooks Rules and Patterns (CRITICAL)
 
-## 9. Testing
+- [`hook-top-level`](rules/hook-top-level.md) - Call hooks at the top level only — never inside conditions or loops
+- [`hook-component-only`](rules/hook-component-only.md) - Call hooks only from React components or custom hooks
+- [`hook-before-returns`](rules/hook-before-returns.md) - Call all hooks before any early return statements
+- [`hook-useState-callback`](rules/hook-useState-callback.md) - Use callback initialiser for expensive useState computations
+- [`hook-useEffect-cleanup`](rules/hook-useEffect-cleanup.md) - Return cleanup functions from useEffect for subscriptions and timers
+- [`hook-useEffect-deps`](rules/hook-useEffect-deps.md) - Always include a dependency array in useEffect
+- [`hook-useReducer-complex`](rules/hook-useReducer-complex.md) - Switch to useReducer when 4+ related state variables
+- [`hook-memo-profile-first`](rules/hook-memo-profile-first.md) - Profile before applying useMemo or useCallback
+- [`hook-custom-prefix`](rules/hook-custom-prefix.md) - Prefix custom hooks with `use`, extract when reused in 2+ components
+- [`hook-exhaustive-deps`](rules/hook-exhaustive-deps.md) - Include all reactive values in dependency arrays
 
-<instructions>
-### Approach
-- Use the project's existing test runner and testing library
-- Common stack: Vitest/Jest + React Testing Library
-- Test **behaviour**, not implementation details
-- Test error states and edge cases, not just the happy path
+### 2. State Management (CRITICAL)
 
-### What to Test
-- Custom hooks: test inputs and outputs
-- Components: test user interactions and rendered output
-- Utilities: pure function input/output
-- Integration: test page-level flows with mocked API calls
+- [`state-local-simple`](rules/state-local-simple.md) - Use useState for simple, isolated UI state
+- [`state-reducer-complex`](rules/state-reducer-complex.md) - Use useReducer for complex interdependent state
+- [`state-derive-inline`](rules/state-derive-inline.md) - Compute derived values inline instead of storing in state
+- [`state-match-existing`](rules/state-match-existing.md) - Use the project's existing state management library
+- [`state-small-stores`](rules/state-small-stores.md) - Keep stores small and focused — one per domain concern
+- [`state-selectors`](rules/state-selectors.md) - Use selectors to subscribe to only needed state slices
+- [`state-close-to-usage`](rules/state-close-to-usage.md) - Keep state as close to its usage as possible
+- [`state-query-library`](rules/state-query-library.md) - Use the project's data fetching library for server state
+- [`state-never-mutate`](rules/state-never-mutate.md) - Never mutate state objects or arrays directly
+- [`state-immutable-updates`](rules/state-immutable-updates.md) - Use spread, map, filter for immutable state updates
 
-### Test Selectors
-- Prefer accessible selectors: `getByRole`, `getByLabelText`, `getByText`
-- Use `data-testid` only when semantic selectors are not available
-- Mock API calls, not internal functions
-</instructions>
+### 3. Component Architecture (HIGH)
 
-<anti-patterns>
-- Testing implementation details (state values, internal methods)
-- Snapshot tests as the sole test strategy
-- Testing library internals (React Query cache, router state)
-- Skipping error state tests
-</anti-patterns>
+- [`comp-functional-only`](rules/comp-functional-only.md) - Use function declarations for components
+- [`comp-one-per-file`](rules/comp-one-per-file.md) - One page-level component per file
+- [`comp-composition`](rules/comp-composition.md) - Compose with children and render props
+- [`comp-compound-pattern`](rules/comp-compound-pattern.md) - Use compound component pattern for related elements
+- [`comp-custom-hooks`](rules/comp-custom-hooks.md) - Extract shared logic into custom hooks, not HOCs
+- [`comp-match-structure`](rules/comp-match-structure.md) - Follow the existing project file structure
+- [`comp-pure-render`](rules/comp-pure-render.md) - Keep components pure — same props, same output
+- [`comp-side-effects`](rules/comp-side-effects.md) - Side effects in useEffect or event handlers, never in render
+- [`comp-no-inline-styles`](rules/comp-no-inline-styles.md) - Use CSS classes matching the project's styling approach
+- [`comp-jsx-fragments`](rules/comp-jsx-fragments.md) - Use fragments and semantic HTML, avoid unnecessary divs
 
-## 10. Code Quality and Naming
+### 4. TypeScript Patterns (HIGH)
 
-<instructions>
-### Naming Conventions
-- **Components**: PascalCase — `CreditFacilityCard`, `StatusBadge`
-- **Variables, functions**: camelCase — `getCreditFacilities`, `totalAmount`
-- **Constants**: SCREAMING_SNAKE_CASE — `PAGE_SIZE_OPTIONS`, `DEFAULT_SORT`
-- **Files**: PascalCase for components (`StatCard.tsx`), camelCase for utilities (`formatCurrency.ts`)
-- **Boolean props**: prefix with `is`, `has`, `should`, `can` — `isLoading`, `hasError`, `shouldRender`
-- **Event handlers**: prefix with `handle` — `handleSubmit`, `handleFilterChange`
-- **Callback props**: prefix with `on` — `onSubmit`, `onChange`, `onFilterChange`
+- [`ts-interface-props`](rules/ts-interface-props.md) - Type all component props with an interface
+- [`ts-no-any`](rules/ts-no-any.md) - Use `unknown` and narrow instead of `any`
+- [`ts-discriminated-unions`](rules/ts-discriminated-unions.md) - Use discriminated unions for state machines
+- [`ts-export-types`](rules/ts-export-types.md) - Export types alongside components when consumers need them
+- [`ts-satisfies`](rules/ts-satisfies.md) - Use `satisfies` for type-safe object literals
+- [`ts-generics`](rules/ts-generics.md) - Use generics for reusable hooks, utilities, and components
+- [`ts-interface-vs-type`](rules/ts-interface-vs-type.md) - Prefer `interface` for objects, `type` for unions
 
-### Import Organisation
-- React imports first
-- External library imports second
-- Internal/project imports third (aliases like `@/` or package names)
-- Relative imports last
-- Group with blank lines between sections
+### 5. Error Handling (HIGH)
 
-### JSX Practices
-- Self-close components with no children: `<Component />`
-- Boolean props shorthand: `<Component flag />` not `flag={true}`
-- String props without braces: `variant="primary"` not `variant={"primary"}`
-- Use fragments `<>...</>` instead of unnecessary wrapper `<div>`s
-</instructions>
+- [`err-error-boundary`](rules/err-error-boundary.md) - Place Error Boundaries at route or section level
+- [`err-try-catch-async`](rules/err-try-catch-async.md) - Wrap async operations in try-catch with user-facing messages
+- [`err-toast-transient`](rules/err-toast-transient.md) - Use toast/notification system for transient errors
+- [`err-reuse-boundary`](rules/err-reuse-boundary.md) - Search for existing ErrorBoundary before creating new ones
+- [`err-never-swallow`](rules/err-never-swallow.md) - Always log or display errors — never catch and ignore
+- [`err-handle-all-states`](rules/err-handle-all-states.md) - Handle loading, error, and success states for async operations
 
-## 11. List Rendering
+### 6. Security (HIGH)
 
-<instructions>
-- Always provide unique, stable keys — use entity IDs from your data
-- NEVER use array indices as keys — this causes state bugs when items are reordered or filtered
-- Extract list items into separate components for readability
-- For large lists, consider virtualisation (identified in Phase 1 or via the Vercel performance skill)
-</instructions>
+- [`sec-no-inner-html`](rules/sec-no-inner-html.md) - Sanitise content before using `dangerouslySetInnerHTML`
+- [`sec-validate-input`](rules/sec-validate-input.md) - Validate user input on both client and server
+- [`sec-httponly-cookies`](rules/sec-httponly-cookies.md) - Use HttpOnly cookies for auth tokens, not localStorage
+- [`sec-sanitise-urls`](rules/sec-sanitise-urls.md) - Sanitise URL parameters before rendering
+- [`sec-no-client-secrets`](rules/sec-no-client-secrets.md) - Keep secrets and API keys out of client-side code
+- [`sec-update-deps`](rules/sec-update-deps.md) - Keep dependencies updated to patch vulnerabilities
 
-## 12. Accessibility
+### 7. Testing (MEDIUM)
 
-<instructions>
-- Use semantic HTML elements: `<button>`, `<nav>`, `<main>`, `<section>`, `<article>`, `<header>`, `<footer>`
-- Provide `aria-label` for icon-only buttons and non-text interactive elements
-- Ensure keyboard navigation works for all interactive elements
-- Use `role` attributes only when semantic elements are not appropriate
-- Colour contrast: meet WCAG 2.1 AA minimum (4.5:1 for normal text, 3:1 for large text)
-- Form labels: every input has an associated `<label>` or `aria-label`
-- Focus management: visible focus indicators, logical tab order
-</instructions>
+- [`test-existing-setup`](rules/test-existing-setup.md) - Use the project's existing test runner and testing library
+- [`test-behaviour`](rules/test-behaviour.md) - Test user-visible behaviour, not implementation details
+- [`test-error-edge`](rules/test-error-edge.md) - Test error states and edge cases, not just the happy path
+- [`test-custom-hooks`](rules/test-custom-hooks.md) - Test custom hooks with renderHook
+- [`test-accessible-selectors`](rules/test-accessible-selectors.md) - Prefer accessible selectors: getByRole, getByLabelText, getByText
+- [`test-data-testid-last`](rules/test-data-testid-last.md) - Use data-testid only when semantic selectors are unavailable
+- [`test-mock-api`](rules/test-mock-api.md) - Mock API calls at the network level, not internal functions
 
-## 13. Comprehensive Anti-Patterns
+### 8. Code Quality and Naming (MEDIUM)
 
-<anti-patterns>
-### Architecture
-- Mixing render logic with side effects
-- God components with 500+ lines — split into smaller focused components
-- Business logic in components — extract to hooks or utility functions
-- Tight coupling between components via shared mutable state
+- [`name-component-pascal`](rules/name-component-pascal.md) - PascalCase for component names
+- [`name-variable-camel`](rules/name-variable-camel.md) - camelCase for variables and functions
+- [`name-constant-screaming`](rules/name-constant-screaming.md) - SCREAMING_SNAKE_CASE for constants
+- [`name-file-convention`](rules/name-file-convention.md) - PascalCase for component files, camelCase for utilities
+- [`name-boolean-prefix`](rules/name-boolean-prefix.md) - Prefix boolean props with `is`, `has`, `should`, `can`
+- [`name-handler-prefix`](rules/name-handler-prefix.md) - Prefix handlers with `handle`, callbacks with `on`
+- [`name-import-order`](rules/name-import-order.md) - Organize imports in consistent groups
 
-### State
-- Storing derived data in state
-- Prop drilling beyond 2 levels
-- Over-using Context for frequently-updating values
-- Direct state mutation
+### 9. List Rendering (MEDIUM)
 
-### Performance (defer to Vercel skill for details)
-- Sequential awaits when parallel is possible
-- Creating new objects/functions on every render without memoisation (when profiling shows impact)
-- Missing keys or index-based keys in lists
+- [`list-stable-keys`](rules/list-stable-keys.md) - Provide unique, stable keys from entity IDs
+- [`list-no-index-keys`](rules/list-no-index-keys.md) - Never use array indices as keys for dynamic lists
+- [`list-extract-items`](rules/list-extract-items.md) - Extract list items into separate components
 
-### TypeScript
-- Using `any` type
-- Type assertions (`as`) to silence errors
-- Not typing event handlers
-- Inconsistent interface naming
+### 10. Accessibility (MEDIUM)
 
-### Testing
-- Testing implementation details
-- No error state coverage
-- Snapshot-only testing
-- Skipping accessibility tests
-</anti-patterns>
+- [`a11y-semantic-html`](rules/a11y-semantic-html.md) - Use semantic HTML elements for their intended purpose
+- [`a11y-aria-labels`](rules/a11y-aria-labels.md) - Provide aria-label for icon-only buttons
+- [`a11y-keyboard-nav`](rules/a11y-keyboard-nav.md) - Ensure keyboard navigation for all interactive elements
+- [`a11y-role-sparingly`](rules/a11y-role-sparingly.md) - Use role only when semantic elements are not appropriate
+- [`a11y-color-contrast`](rules/a11y-color-contrast.md) - Meet WCAG 2.1 AA contrast ratios
+- [`a11y-form-labels`](rules/a11y-form-labels.md) - Associate every input with a label or aria-label
+- [`a11y-focus-management`](rules/a11y-focus-management.md) - Maintain visible focus indicators and logical tab order
+
+### 11. Anti-patterns (REFERENCE)
+
+- [`anti-god-component`](rules/anti-god-component.md) - Split components over 300-500 lines into focused pieces
+- [`anti-business-in-component`](rules/anti-business-in-component.md) - Extract business logic to hooks or utilities
+- [`anti-tight-coupling`](rules/anti-tight-coupling.md) - Avoid coupling components via shared mutable state
+- [`anti-snapshot-only`](rules/anti-snapshot-only.md) - Avoid snapshot-only testing strategy
+- [`anti-define-inside`](rules/anti-define-inside.md) - Never define components inside other components
+
+---
+
+## How to Use
+
+Reference these guidelines by task type:
+
+| Task | Primary Categories |
+|------|-------------------|
+| New component | `comp-`, `ts-`, `name-` |
+| New hook | `hook-`, `state-` |
+| Form implementation | `hook-`, `state-`, `ts-`, `a11y-` |
+| List/table rendering | `list-`, `comp-`, `a11y-` |
+| Async data flow | `state-`, `err-`, `hook-` |
+| Error handling | `err-`, `comp-` |
+| Code review | `anti-`, `hook-`, `a11y-` |
+| Testing | `test-` |
+| Security review | `sec-` |
+
+### Rule Application
+
+1. **Check relevant category** based on task type
+2. **Apply rules** with matching prefix
+3. **Prioritise** CRITICAL > HIGH > MEDIUM > REFERENCE
+4. **Read rule files** in `rules/` for detailed examples
+
+---
 
 ## References
 

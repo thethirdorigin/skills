@@ -1,6 +1,10 @@
 ---
 name: rust-best-practises
-description: Rust coding standards, API design, and best practices. Use when writing, reviewing, or refactoring Rust code. Covers architecture discovery, naming, error handling, ownership, async patterns, traits, testing, documentation, linting, performance, and crate design. References Rust API Guidelines (C-*) and Microsoft Rust Guidelines (M-*).
+description: >
+  Rust coding standards, API design, and best practices with 121 rules across 16 categories.
+  Use when writing, reviewing, or refactoring Rust code. Covers error handling, ownership,
+  API design, async patterns, naming, testing, documentation, linting, performance, and
+  common anti-patterns. References Rust API Guidelines (C-*) and Microsoft Rust Guidelines (M-*).
 triggers:
   - writing Rust code
   - working on backend
@@ -11,8 +15,6 @@ triggers:
   - adding an API endpoint
   - Rust refactoring
   - Rust error handling
-  - Rust testing
----
   - Rust testing
 ---
 
@@ -28,7 +30,17 @@ This skill references two authoritative guideline systems:
 **Companion skill**: **rust-skills** (179 concrete rules with bad→good code examples across memory optimisation, compiler tuning, async patterns, testing, and anti-patterns). Installed alongside this skill in the thethirdorigin marketplace.
 </context>
 
-## 1. Architecture Discovery
+## When to Apply
+
+Reference these guidelines when:
+- Writing new Rust functions, structs, or modules
+- Designing public APIs for libraries or services
+- Implementing error handling or async code
+- Reviewing code for ownership, naming, or safety issues
+- Refactoring existing Rust code
+- Setting up linting, testing, or logging
+
+## Architecture Discovery
 
 <instructions>
 Before writing any Rust code, perform these discovery steps:
@@ -43,405 +55,236 @@ Before writing any Rust code, perform these discovery steps:
 - Check `[workspace.lints]` and `[workspace.dependencies]` sections for project-wide conventions
 </instructions>
 
-## 2. Code Formatting
-
-<instructions>
-- 4-space indentation, never tabs — all indentation must be multiples of 4
-- Maximum line width: 100 characters
-- Use trailing commas in all multi-line comma-separated lists (smaller diffs, easier reordering)
-- Single-line format for small items: `Foo { f1, f2 }`
-- No trailing whitespace on any line
-- Single space after comment sigils: `// comment` or `/* comment */`
-- Separate items with 0-1 blank lines
-- Run `cargo fmt` before every commit
-- Use `rustfmt` configuration from the workspace if present
-</instructions>
-
-## 3. Naming Conventions
-
-<instructions>
-### Standard Casing (C-CASE)
-- Types, traits, enum variants: `PascalCase` (CreditFacility, MarginAccountId)
-- Functions, methods, local variables: `snake_case` (deploy_credit_facility, total_amount)
-- Constants, statics: `SCREAMING_SNAKE_CASE` (MAX_RETRIES, DEFAULT_TIMEOUT)
-- Modules, crates: `snake_case` matching domain concepts
-- Lifetimes: short lowercase, usually `'a`, `'de`, `'src`
-
-### Conversion Methods (C-CONV)
-- `as_` — cheap reference-to-reference conversion (no allocation, no copy)
-- `to_` — expensive conversion that may allocate (e.g., `to_string()`)
-- `into_` — consumes self, transforms ownership (e.g., `into_inner()`)
-
-### Iterator Methods (C-ITER)
-- `iter()` returns `&T`, `iter_mut()` returns `&mut T`, `into_iter()` consumes and returns `T`
-- Iterator type names match the methods: `Iter`, `IterMut`, `IntoIter`
-
-### Getter Methods (C-GETTER)
-- Simple field access: name the method after the field without a `get_` prefix
-- Example: `fn name(&self) -> &str` not `fn get_name(&self) -> &str`
-
-### No Weasel Words (M-CONCISE-NAMES)
-- Remove meaningless terms: Service, Manager, Factory, Handler, Helper, Processor, Provider
-- Use specific names reflecting actual functionality
-- Prefer `Builder` over `Factory` when constructing values
-</instructions>
-
-<anti-patterns>
-- `get_` prefix on simple getters: use `fn name()` not `fn get_name()`
-- Magic numbers without constants: use `const MAX_RETRIES: u32 = 3;` not inline `3`
-- Generic abbreviations: use `item_count` not `cnt`, `total_amount` not `amt`
-- Single-letter variables outside of closures and short iterator chains
-</anti-patterns>
-
-## 4. API Design
-
-<instructions>
-### Interoperability — Eagerly Implement Common Traits (C-COMMON-TRAITS, M-PUBLIC-DEBUG, M-PUBLIC-DISPLAY)
-- All public types: derive or implement `Debug` (C-DEBUG, M-PUBLIC-DEBUG)
-- Where meaningful: `Clone`, `Default`, `PartialEq`, `Eq`, `Hash`
-- For data structures: implement `Serialize` and `Deserialize` (C-SERDE)
-- All public types should be `Send` where possible (M-TYPES-SEND, C-SEND-SYNC)
-- Types expected to be read by users: implement `Display` (M-PUBLIC-DISPLAY)
-- Use standard conversion traits: `From`, `AsRef`, `AsMut` (C-CONV-TRAITS)
-- Collections: implement `FromIterator` and `Extend` (C-COLLECT)
-- Debug output must never be empty (C-DEBUG-NONEMPTY)
-- Custom Debug for sensitive types must not leak secrets
-
-### Type Safety (C-NEWTYPE, C-CUSTOM-TYPE, M-STRONG-TYPES)
-- Use newtypes to distinguish semantically different values of the same underlying type
-  - Example: `struct UserId(Uuid)` and `struct AccountId(Uuid)` — not raw `Uuid` everywhere
-- Arguments convey meaning through types, not `bool` or `Option`:
-  - Instead of `fn process(data: &[u8], compressed: bool)`, use an enum: `enum Encoding { Raw, Compressed }`
-- Use `PathBuf` for OS paths instead of `String` (M-STRONG-TYPES)
-- Use bitflags for flag sets, not enums (C-BITFLAG)
-
-### Builders for Complex Construction (C-BUILDER, M-INIT-BUILDER)
-- Use builders when a type has 4+ optional parameters
-- Pattern: `Foo::builder()` returns `FooBuilder` with chainable methods and `.build()` finaliser
-- Required parameters passed to builder creation, optional set via methods
-- For types with 2-3 optional parameters, inherent methods suffice
-
-### Predictability
-- Functions with a clear receiver are methods (C-METHOD)
-- Functions do not take out-parameters — return values instead (C-NO-OUT)
-- Constructors are static, inherent methods (C-CTOR): `fn new()`, `fn with_capacity()`
-- Operator overloads are unsurprising (C-OVERLOAD)
-- Only smart pointers implement Deref/DerefMut (C-DEREF)
-- Prefer regular functions over associated functions for unrelated computation (M-REGULAR-FN)
-
-### Flexibility
-- Functions minimise assumptions about parameters using generics (C-GENERIC)
-- Accept `impl AsRef<str>`, `impl AsRef<Path>`, `impl AsRef<[u8]>` where feasible (M-IMPL-ASREF)
-- Accept `impl Read`/`impl Write` for I/O functions — enables composability (M-IMPL-IO)
-- Accept `impl RangeBounds<T>` instead of hand-rolled start/end parameters (M-IMPL-RANGEBOUNDS)
-- Traits are object-safe if they may be useful as a trait object (C-OBJECT)
-- Expose intermediate results to avoid forcing callers to redo work (C-INTERMEDIATE)
-
-### Type Hierarchy for Dependency Injection (M-DI-HIERARCHY)
-- Prefer concrete types over generic parameters
-- Prefer generic parameters over `dyn Trait` objects
-- Use enums for mock/test implementations
-- Accept narrow, single-concern traits for generic bounds
-- Implement traits for concrete types on top of inherent functions
-
-### Library UX
-- Essential functionality is inherent — users must not need trait imports (M-ESSENTIAL-FN-INHERENT)
-- Service-like types implement shared-ownership Clone via `Arc<Inner>` (M-SERVICES-CLONE)
-- Avoid `Rc`, `Arc`, `Box`, `RefCell` in public APIs — hide behind clean interfaces (M-AVOID-WRAPPERS)
-- Abstractions do not visibly nest: avoid requiring `Foo<Bar<Baz>>` from callers (M-SIMPLE-ABSTRACTIONS)
-- Do not leak external crate types in public APIs (M-DONT-LEAK-TYPES)
-
-### Future-Proofing
-- Struct fields are private — use accessor methods (C-STRUCT-PRIVATE)
-- Sealed traits protect against downstream implementations (C-SEALED)
-- Data structures do not duplicate derived trait bounds (C-STRUCT-BOUNDS)
-</instructions>
-
-## 5. Error Handling
-
-<instructions>
-### Core Principle
-- Use `Result<T, E>` for all recoverable errors — never panic in library code
-- Use `?` operator for error propagation — do not match-and-rewrap
-- Panics mean "stop the program" (M-PANIC-IS-STOP) — only for:
-  - Programming bugs and contract violations (M-PANIC-ON-BUG)
-  - Const contexts
-  - User-requested abort
-  - Poison (e.g., poisoned mutex)
-
-### Library Error Types (M-ERRORS-CANONICAL-STRUCTS)
-- Create situation-specific error structs with:
-  - `Backtrace` capture
-  - Cause chain via `source()`
-  - `ErrorKind` enum for categorisation (internal, not directly exposed)
-  - `is_xxx()` helper methods for error classification
-- Implement `Display` with summary + backtrace + cause information
-- Implement `std::error::Error` trait
-- Error types must be meaningful and well-behaved (C-GOOD-ERR)
-
-### Application Error Types (M-APP-ERROR)
-- Applications may use `anyhow`, `eyre`, or similar ergonomic error crates
-- Libraries MUST use concrete error types, not anyhow
-
-### Error Handling Patterns
-- Match existing error conversion patterns in the codebase (check for `From` impls)
-- Error variants carry context strings, not raw inner errors
-- Create private `bail!()` helper macros for frequently constructed errors
-- Test error paths explicitly — not just happy paths
-</instructions>
-
-<anti-patterns>
-- `.unwrap()` or `.expect()` in non-test code
-- `panic!()` for recoverable errors
-- Stringly-typed errors (use typed enums/structs)
-- Catching all errors with a single generic variant
-- Silently swallowing errors with `let _ = ...`
-- Using `anyhow` in library crates (use `thiserror` or canonical structs)
-</anti-patterns>
-
-## 6. Ownership and Borrowing
-
-<instructions>
-- Borrow (`&T`, `&mut T`) over clone where possible — reduces memory overhead
-- Pass by value for `Copy` types (u64, bool, Uuid, small enums)
-- Use `Arc<T>` for shared ownership across async tasks — never `Rc` in async code
-- `Arc<dyn Trait + Send + Sync>` for trait objects in dependency injection containers
-- Prefer moves over clones when ownership transfer is intentional
-- Detect unnecessary cloning through code review and profiling
-</instructions>
-
-<anti-patterns>
-- `.clone()` to satisfy the borrow checker without understanding why
-- `Rc<T>` in async code (not Send)
-- Excessive `Box<dyn Trait>` when concrete types or generics suffice
-- Cloning large data structures in hot loops
-</anti-patterns>
-
-## 7. Async Patterns
-
-<instructions>
-- All I/O operations are async — identify the runtime (tokio, async-std) from dependencies
-- Use `async_trait` (or native async traits if edition 2024+) for trait definitions
-- Never block in async context: no `std::thread::sleep`, use `tokio::time::sleep`
-- All trait objects in async containers need `Send + Sync` bounds
-- Long-running CPU-bound tasks: include yield points (M-YIELD-POINTS)
-  - `yield_now().await` at regular intervals (target 10-100us between yields)
-  - Use `has_budget_remaining()` for unpredictable operation durations
-- Generated futures must be `Send` — validate with compile-time assertions (M-TYPES-SEND)
-</instructions>
-
-## 8. Iterators and Functional Chains
-
-<instructions>
-- Prefer iterator chains (`.iter().map().filter().collect()`) over explicit for loops
-- Use `.into_iter()` when consuming the collection
-- Leverage zero-cost abstractions — the compiler optimises away intermediate allocations
-- Chain operations for expressive, efficient data processing
-- Use `Option`/`Result` combinators: `.map()`, `.and_then()`, `.unwrap_or()`, `.unwrap_or_default()`
-</instructions>
-
-<anti-patterns>
-- Manual loops that could be expressed as iterator chains
-- Creating intermediate `Vec`s when a single iterator chain suffices
-- Allocating collections before confirming necessity
-</anti-patterns>
-
-## 9. Generics and Traits
-
-<instructions>
-### Static vs Dynamic Dispatch
-- **Static dispatch** (`impl Trait` or `<T: Trait>`): zero runtime overhead, enables inlining, monomorphises per type — use for hot paths
-- **Dynamic dispatch** (`dyn Trait`): runtime cost, smaller binary — use for DI boundaries, plugin systems, heterogeneous collections
-
-### Type State Pattern
-- Encode state transitions in the type system using phantom types
-- Example: `Connection<Disconnected>` -> `Connection<Connected>` -> `Connection<Authenticated>`
-- Prevents invalid state transitions at compile time
-- Trade-off: complexity increases with more states — use judiciously
-
-### Trait Design
-- Design trait methods to work naturally with trait objects
-- Avoid methods requiring `Self: Sized` unless necessary
-- Keep traits focused — single responsibility per trait
-- Use supertraits to compose requirements: `trait Service: Send + Sync + Clone`
-</instructions>
-
-## 10. Documentation
-
-<instructions>
-### Canonical Sections (M-CANONICAL-DOCS)
-Every public item should have:
-- **Summary sentence**: under 15 words, single line (M-FIRST-DOC-SENTENCE)
-- **Extended documentation**: detailed explanation when needed
-- **Examples**: runnable code demonstrating usage
-- **Errors**: what error types are returned and when
-- **Panics**: conditions that cause panic (if any)
-- **Safety**: requirements for unsafe functions
-
-### Module Documentation (M-MODULE-DOCS)
-- All public library modules require `//!` module documentation
-- Cover: module contents, usage context, examples, side effects
-
-### Doc Comments
-- Use `///` for items, `//!` for crate/module level
-- Use `?` in examples, not `unwrap()` (C-QUESTION-MARK)
-- Include hyperlinks to related items (C-LINK)
-- Mark re-exports with `#[doc(inline)]` (M-DOC-INLINE)
-- Document magic values with rationale and side effects (M-DOCUMENTED-MAGIC)
-
-### Code Comments
-- Prefer line comments (`//`) over block comments
-- Explain *why*, not *what* — the code shows what
-- Complete sentences: start with capital letter, end with period
-- Do not maintain "living comments" that must update alongside code
-</instructions>
-
-<anti-patterns>
-- Undocumented public APIs
-- Doc comments that restate the function signature
-- `unwrap()` in documentation examples
-- Missing `# Examples` sections for complex public functions
-- Stale TODO comments — convert to tracked issues
-</anti-patterns>
-
-## 11. Testing
-
-<instructions>
-### Test Organisation
-- Unit tests: `#[cfg(test)] mod tests` in the same file
-- Integration tests: `tests/` directory at the crate root
-- Doc tests: examples in `///` comments that compile and run
-
-### Test Quality
-- Test error paths, not just happy paths (C-GOOD-ERR)
-- Use descriptive test names explaining what is verified
-- Use specific assertion macros (`assert_eq!`, `assert!`) with meaningful messages
-- Consider `cargo insta` for snapshot testing complex output
-
-### Testable Design (M-DESIGN-FOR-AI, M-MOCKABLE-SYSCALLS)
-- Design APIs to be testable — allow customers to validate usage in unit tests
-- Make I/O and system calls mockable: accept traits, not concrete I/O types
-- Use enum dispatching between native and mocked implementations
-- Test utilities feature-gated behind `test-util` feature (M-TEST-UTIL)
-- Mockable port traits: use `#[cfg_attr(test, automock)]` if mockall is available
-</instructions>
-
-## 12. Static Verification and Linting
-
-<instructions>
-### Clippy (M-STATIC-VERIFICATION)
-- Run `cargo clippy --all-targets --all-features` during development and CI
-- Fix the root cause of warnings — do not silence with `#[allow(...)]`
-- Use `#[expect]` instead of `#[allow]` for justified overrides — it warns if the override becomes unnecessary (M-LINT-OVERRIDE-EXPECT)
-- Include a reason attribute: `#[expect(clippy::too_many_arguments, reason = "builder pattern pending")]`
-
-### Compiler Lints
-Enable at workspace level:
-- `ambiguous_negative_literals`
-- `missing_debug_implementations`
-- `redundant_imports`
-- `unused_lifetimes`
-- `unsafe_op_in_unsafe_fn`
-
-### Additional Tools
-- `cargo fmt --check` — formatting validation
-- `cargo-audit` — security vulnerability scanning
-- `cargo-hack` — feature combination testing
-- `cargo-udeps` — unused dependency detection
-- `miri` — unsafe code validation
-</instructions>
-
-## 13. Structured Logging (M-LOG-STRUCTURED)
-
-<instructions>
-- Use structured events with named properties and message templates
-- Defer string formatting via templates: `tracing::info!(user_id = %id, "User logged in")`
-- Use hierarchical dot-notation naming: `component.operation.state`
-- Follow OpenTelemetry semantic conventions where applicable
-- Redact sensitive data using dedicated mechanisms
-- Match the logging framework already in use (tracing, log, etc.)
-</instructions>
-
-## 14. Dependencies and Crate Design
-
-<instructions>
-### Workspace Dependencies
-- Use `{ workspace = true }` for shared dependencies — do not duplicate versions
-- Check existing workspace dependencies before adding new ones
-- Features must be additive: adding a feature must not disable public items (M-FEATURES-ADDITIVE)
-
-### Crate Design
-- Prefer smaller, focused crates over monolithic ones (M-SMALLER-CRATES)
-  - Independent submodules should become separate crates
-  - Dramatically improves compile times and prevents cyclic dependencies
-- Avoid module-level statics where consistent view affects correctness (M-AVOID-STATICS)
-- Re-export items individually, not via glob re-exports (M-NO-GLOB-REEXPORTS)
-- Libraries must work out of the box on all Tier 1 platforms (M-OOBE)
-</instructions>
-
-## 15. Performance
-
-<instructions>
-- Profile before optimising — never guess (use `cargo flamegraph`, `criterion`, `divan`)
-- Identify performance-relevant crates early; create benchmarks around hot paths (M-HOTPATH)
-- Optimise for throughput: partition work chunks, let threads handle slices independently (M-THROUGHPUT)
-- Monitor struct sizes for stack optimisation
-- Zero-cost abstractions: trust the compiler to optimise iterator chains and generics
-- Use connection pooling for database and HTTP clients
-- Avoid hot spinning, individual item processing in loops, and work stealing unless measured
-</instructions>
-
-## 16. Unsafe Code
-
-<instructions>
-- Reserve unsafe for: FFI boundaries, novel abstractions, measured performance gains (M-UNSAFE)
-- `unsafe` implies undefined behaviour risk — do not use for "danger" unrelated to UB (M-UNSAFE-IMPLIES-UB)
-- All code must be sound: safe functions may rely on module-level guarantees, but must never allow UB from safe callers (M-UNSOUND)
-- Document safety contracts with `// SAFETY:` comments
-- Harden against adversarial code and misbehaving traits
-- Pass Miri including adversarial test cases
-- Expose unsafe functions rather than unsound safe abstractions
-</instructions>
-
-## 17. Comprehensive Anti-Patterns
-
-<anti-patterns>
-### Memory and Performance
-- Cloning when borrowing suffices
-- Unnecessary allocations or copies in hot paths
-- Large structs on the stack unnecessarily
-- Blocking calls in async context
-
-### Code Quality
-- Silencing clippy without addressing root cause
-- Living comments that duplicate code logic
-- Monolithic functions combining multiple responsibilities
-- Over-engineering with unnecessary abstractions
-- Magic numbers without named constants
-
-### Error Handling
-- Panicking on recoverable errors
-- `.unwrap()` in production code
-- Not testing error paths
-- Poor error propagation (match-and-rewrap instead of ?)
-
-### Architecture
-- Domain layer importing infrastructure types
-- Leaking external crate types in public APIs
-- Circular dependencies between modules
-- God objects with too many responsibilities
-
-### Type System
-- Primitive obsession: raw strings/ints where newtypes belong
-- Boolean parameters where enums would be clearer
-- Not leveraging exhaustive matching for enums
-</anti-patterns>
+---
+
+## Rule Categories by Priority
+
+| Priority | Category | Impact | Prefix | Rules |
+|----------|----------|--------|--------|-------|
+| 1 | Error Handling | CRITICAL | `err-` | 8 |
+| 2 | Ownership and Borrowing | CRITICAL | `own-` | 6 |
+| 3 | API Design | HIGH | `api-` | 20 |
+| 4 | Async Patterns | HIGH | `async-` | 6 |
+| 5 | Unsafe Code | HIGH | `unsafe-` | 5 |
+| 6 | Generics and Traits | MEDIUM | `trait-` | 7 |
+| 7 | Naming Conventions | MEDIUM | `name-` | 10 |
+| 8 | Testing | MEDIUM | `test-` | 7 |
+| 9 | Documentation | MEDIUM | `doc-` | 10 |
+| 10 | Iterators and Functional Chains | MEDIUM | `iter-` | 5 |
+| 11 | Performance | MEDIUM | `perf-` | 6 |
+| 12 | Static Verification and Linting | LOW | `lint-` | 7 |
+| 13 | Code Formatting | LOW | `fmt-` | 8 |
+| 14 | Structured Logging | LOW | `log-` | 5 |
+| 15 | Dependencies and Crate Design | LOW | `crate-` | 6 |
+| 16 | Anti-patterns | REFERENCE | `anti-` | 5 |
+
+---
+
+## Quick Reference
+
+### 1. Error Handling (CRITICAL)
+
+- [`err-result-recoverable`](rules/err-result-recoverable.md) - Use `Result<T, E>` for all recoverable errors
+- [`err-question-mark`](rules/err-question-mark.md) - Use `?` for propagation, not match-and-rewrap
+- [`err-panic-bugs-only`](rules/err-panic-bugs-only.md) - Reserve panic for programming bugs only
+- [`err-canonical-structs`](rules/err-canonical-structs.md) - Library errors: situation-specific structs with backtrace
+- [`err-anyhow-app`](rules/err-anyhow-app.md) - Applications use `anyhow`; libraries use concrete types
+- [`err-context-chain`](rules/err-context-chain.md) - Error variants carry context, not raw inner errors
+- [`err-match-existing`](rules/err-match-existing.md) - Match existing error conversion patterns in the codebase
+- [`err-test-error-paths`](rules/err-test-error-paths.md) - Test error paths explicitly
+
+### 2. Ownership and Borrowing (CRITICAL)
+
+- [`own-borrow-prefer`](rules/own-borrow-prefer.md) - Borrow (`&T`, `&mut T`) over clone where possible
+- [`own-copy-value-types`](rules/own-copy-value-types.md) - Pass `Copy` types by value
+- [`own-arc-async`](rules/own-arc-async.md) - Use `Arc<T>` for shared ownership across async tasks
+- [`own-arc-dyn-trait`](rules/own-arc-dyn-trait.md) - Use `Arc<dyn Trait + Send + Sync>` for DI trait objects
+- [`own-move-intentional`](rules/own-move-intentional.md) - Prefer moves over clones for ownership transfer
+- [`own-detect-cloning`](rules/own-detect-cloning.md) - Detect unnecessary cloning through review and profiling
+
+### 3. API Design (HIGH)
+
+- [`api-common-traits`](rules/api-common-traits.md) - Eagerly implement `Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`
+- [`api-debug-display`](rules/api-debug-display.md) - All public types implement `Debug`; user-facing types implement `Display`
+- [`api-send-sync`](rules/api-send-sync.md) - Public types should be `Send` where possible
+- [`api-conversion-traits`](rules/api-conversion-traits.md) - Implement `From`, `AsRef`, `AsMut` for conversions
+- [`api-newtype-safety`](rules/api-newtype-safety.md) - Use newtypes for type-safe distinctions
+- [`api-enum-over-bool`](rules/api-enum-over-bool.md) - Use enums instead of `bool` parameters
+- [`api-pathbuf-paths`](rules/api-pathbuf-paths.md) - Use `PathBuf`/`Path` for filesystem paths
+- [`api-builder-pattern`](rules/api-builder-pattern.md) - Builder pattern for 4+ optional parameters
+- [`api-method-receiver`](rules/api-method-receiver.md) - Functions with a clear receiver are methods
+- [`api-no-out-params`](rules/api-no-out-params.md) - Return values instead of out-parameters
+- [`api-constructors`](rules/api-constructors.md) - Static inherent methods: `new()`, `with_capacity()`
+- [`api-generic-params`](rules/api-generic-params.md) - Minimise assumptions with generics
+- [`api-impl-asref`](rules/api-impl-asref.md) - Accept `impl AsRef<T>` for flexible inputs
+- [`api-impl-io`](rules/api-impl-io.md) - Accept `impl Read`/`impl Write` for I/O functions
+- [`api-object-safe`](rules/api-object-safe.md) - Design traits to be object-safe when useful
+- [`api-di-hierarchy`](rules/api-di-hierarchy.md) - Concrete > generics > `dyn Trait` for DI
+- [`api-essential-inherent`](rules/api-essential-inherent.md) - Essential functionality is inherent
+- [`api-service-clone`](rules/api-service-clone.md) - Service types use `Arc<Inner>` for cheap `Clone`
+- [`api-private-fields`](rules/api-private-fields.md) - Struct fields private with accessor methods
+- [`api-sealed-trait`](rules/api-sealed-trait.md) - Seal traits to prevent external implementations
+
+### 4. Async Patterns (HIGH)
+
+- [`async-all-io`](rules/async-all-io.md) - All I/O operations are async
+- [`async-trait-usage`](rules/async-trait-usage.md) - Use `async_trait` or native async traits
+- [`async-no-block`](rules/async-no-block.md) - Never block in async context
+- [`async-send-sync`](rules/async-send-sync.md) - Trait objects in async need `Send + Sync` bounds
+- [`async-yield-points`](rules/async-yield-points.md) - Long CPU tasks include yield points
+- [`async-futures-send`](rules/async-futures-send.md) - Validate generated futures are `Send`
+
+### 5. Unsafe Code (HIGH)
+
+- [`unsafe-reserve-ffi`](rules/unsafe-reserve-ffi.md) - Reserve unsafe for FFI, novel abstractions, measured perf
+- [`unsafe-implies-ub`](rules/unsafe-implies-ub.md) - Unsafe implies UB risk, not general "danger"
+- [`unsafe-soundness`](rules/unsafe-soundness.md) - Safe functions must never allow undefined behaviour
+- [`unsafe-safety-docs`](rules/unsafe-safety-docs.md) - Document safety contracts with `// SAFETY:` comments
+- [`unsafe-pass-miri`](rules/unsafe-pass-miri.md) - Validate unsafe code with Miri
+
+### 6. Generics and Traits (MEDIUM)
+
+- [`trait-static-dispatch`](rules/trait-static-dispatch.md) - Static dispatch for hot paths — zero runtime cost
+- [`trait-dynamic-dispatch`](rules/trait-dynamic-dispatch.md) - Dynamic dispatch for DI, plugins, heterogeneous collections
+- [`trait-typestate`](rules/trait-typestate.md) - Encode state transitions in the type system
+- [`trait-object-design`](rules/trait-object-design.md) - Design trait methods to work with trait objects
+- [`trait-single-responsibility`](rules/trait-single-responsibility.md) - Keep traits focused, single responsibility
+- [`trait-supertraits`](rules/trait-supertraits.md) - Use supertraits to compose requirements
+- [`trait-avoid-sized`](rules/trait-avoid-sized.md) - Avoid `Self: Sized` unless necessary
+
+### 7. Naming Conventions (MEDIUM)
+
+- [`name-types-pascal`](rules/name-types-pascal.md) - `PascalCase` for types, traits, enums
+- [`name-funcs-snake`](rules/name-funcs-snake.md) - `snake_case` for functions, methods, modules
+- [`name-consts-screaming`](rules/name-consts-screaming.md) - `SCREAMING_SNAKE_CASE` for constants
+- [`name-lifetime-short`](rules/name-lifetime-short.md) - Short lowercase lifetimes: `'a`, `'de`, `'src`
+- [`name-as-cheap`](rules/name-as-cheap.md) - `as_` prefix for cheap reference conversions
+- [`name-to-expensive`](rules/name-to-expensive.md) - `to_` prefix for expensive conversions
+- [`name-into-ownership`](rules/name-into-ownership.md) - `into_` prefix for ownership transfer
+- [`name-iter-convention`](rules/name-iter-convention.md) - `iter()`/`iter_mut()`/`into_iter()` convention
+- [`name-no-get-prefix`](rules/name-no-get-prefix.md) - No `get_` prefix for simple getters
+- [`name-no-weasel`](rules/name-no-weasel.md) - Remove meaningless terms: Service, Manager, Handler
+
+### 8. Testing (MEDIUM)
+
+- [`test-cfg-module`](rules/test-cfg-module.md) - Unit tests in `#[cfg(test)] mod tests`
+- [`test-integration-dir`](rules/test-integration-dir.md) - Integration tests in `tests/` directory
+- [`test-descriptive-names`](rules/test-descriptive-names.md) - Descriptive test names explaining what is verified
+- [`test-error-paths`](rules/test-error-paths.md) - Test error paths, not just happy paths
+- [`test-mockable-design`](rules/test-mockable-design.md) - Design for testability with traits
+- [`test-test-util-feature`](rules/test-test-util-feature.md) - Gate test utilities behind `test-util` feature
+- [`test-doc-examples`](rules/test-doc-examples.md) - Keep doc examples as executable tests
+
+### 9. Documentation (MEDIUM)
+
+- [`doc-summary-sentence`](rules/doc-summary-sentence.md) - Summary sentence under 15 words
+- [`doc-examples-runnable`](rules/doc-examples-runnable.md) - Include runnable `# Examples` section
+- [`doc-errors-section`](rules/doc-errors-section.md) - Document errors with `# Errors` section
+- [`doc-panics-section`](rules/doc-panics-section.md) - Document panics with `# Panics` section
+- [`doc-safety-section`](rules/doc-safety-section.md) - Document safety with `# Safety` section
+- [`doc-module-docs`](rules/doc-module-docs.md) - Module documentation with `//!`
+- [`doc-question-mark`](rules/doc-question-mark.md) - Use `?` in examples, not `.unwrap()`
+- [`doc-intra-links`](rules/doc-intra-links.md) - Use intra-doc links for cross-references
+- [`doc-explain-why`](rules/doc-explain-why.md) - Comments explain why, not what
+- [`doc-no-living-comments`](rules/doc-no-living-comments.md) - Do not maintain comments that duplicate code
+
+### 10. Iterators and Functional Chains (MEDIUM)
+
+- [`iter-chains`](rules/iter-chains.md) - Prefer iterator chains over explicit for loops
+- [`iter-into-consume`](rules/iter-into-consume.md) - Use `into_iter()` when consuming the collection
+- [`iter-zero-cost`](rules/iter-zero-cost.md) - Trust zero-cost abstractions for iterators
+- [`iter-option-combinators`](rules/iter-option-combinators.md) - Use `Option`/`Result` combinators
+- [`iter-no-intermediate-vec`](rules/iter-no-intermediate-vec.md) - Avoid collecting intermediate iterators
+
+### 11. Performance (MEDIUM)
+
+- [`perf-profile-first`](rules/perf-profile-first.md) - Profile before optimising
+- [`perf-benchmark-hotpaths`](rules/perf-benchmark-hotpaths.md) - Create benchmarks around hot paths
+- [`perf-partition-throughput`](rules/perf-partition-throughput.md) - Partition work for throughput
+- [`perf-monitor-struct-sizes`](rules/perf-monitor-struct-sizes.md) - Monitor struct sizes for stack optimisation
+- [`perf-zero-cost-trust`](rules/perf-zero-cost-trust.md) - Trust compiler for iterator/generic optimisation
+- [`perf-connection-pool`](rules/perf-connection-pool.md) - Use connection pooling for database and HTTP
+
+### 12. Static Verification and Linting (LOW)
+
+- [`lint-clippy-all`](rules/lint-clippy-all.md) - Run `cargo clippy --all-targets --all-features`
+- [`lint-fix-root-cause`](rules/lint-fix-root-cause.md) - Fix root cause, do not silence with `#[allow]`
+- [`lint-expect-over-allow`](rules/lint-expect-over-allow.md) - Use `#[expect]` with reason over `#[allow]`
+- [`lint-enable-warnings`](rules/lint-enable-warnings.md) - Enable key compiler lints at workspace level
+- [`lint-cargo-fmt`](rules/lint-cargo-fmt.md) - Run `cargo fmt --check` in CI
+- [`lint-cargo-audit`](rules/lint-cargo-audit.md) - Run `cargo-audit` for vulnerability scanning
+- [`lint-cargo-hack`](rules/lint-cargo-hack.md) - Test feature combinations with `cargo-hack`
+
+### 13. Code Formatting (LOW)
+
+- [`fmt-four-spaces`](rules/fmt-four-spaces.md) - 4-space indentation, never tabs
+- [`fmt-line-width`](rules/fmt-line-width.md) - Maximum 100 character line width
+- [`fmt-trailing-commas`](rules/fmt-trailing-commas.md) - Trailing commas in multi-line lists
+- [`fmt-single-line-small`](rules/fmt-single-line-small.md) - Single-line format for small items
+- [`fmt-no-trailing-whitespace`](rules/fmt-no-trailing-whitespace.md) - No trailing whitespace
+- [`fmt-comment-space`](rules/fmt-comment-space.md) - Single space after comment sigils
+- [`fmt-blank-lines`](rules/fmt-blank-lines.md) - Separate items with 0-1 blank lines
+- [`fmt-cargo-fmt`](rules/fmt-cargo-fmt.md) - Run `cargo fmt` before every commit
+
+### 14. Structured Logging (LOW)
+
+- [`log-structured-events`](rules/log-structured-events.md) - Structured events with named properties
+- [`log-defer-formatting`](rules/log-defer-formatting.md) - Defer string formatting via templates
+- [`log-hierarchical-naming`](rules/log-hierarchical-naming.md) - Hierarchical dot-notation naming
+- [`log-otel-conventions`](rules/log-otel-conventions.md) - Follow OpenTelemetry semantic conventions
+- [`log-redact-sensitive`](rules/log-redact-sensitive.md) - Redact sensitive data in logs
+
+### 15. Dependencies and Crate Design (LOW)
+
+- [`crate-workspace-deps`](rules/crate-workspace-deps.md) - Use `{ workspace = true }` for shared dependencies
+- [`crate-features-additive`](rules/crate-features-additive.md) - Features must be additive
+- [`crate-smaller-focused`](rules/crate-smaller-focused.md) - Prefer smaller, focused crates
+- [`crate-avoid-statics`](rules/crate-avoid-statics.md) - Avoid module-level statics
+- [`crate-no-glob-reexport`](rules/crate-no-glob-reexport.md) - Re-export items individually, not via glob
+- [`crate-tier1-oobe`](rules/crate-tier1-oobe.md) - Libraries work on all Tier 1 platforms
+
+### 16. Anti-patterns (REFERENCE)
+
+- [`anti-clone-hot-loop`](rules/anti-clone-hot-loop.md) - Avoid cloning large structures in hot loops
+- [`anti-silence-clippy`](rules/anti-silence-clippy.md) - Fix clippy warnings, do not blanket-suppress
+- [`anti-monolith-function`](rules/anti-monolith-function.md) - Split monolithic multi-responsibility functions
+- [`anti-primitive-obsession`](rules/anti-primitive-obsession.md) - Use newtypes where raw strings/ints are used
+- [`anti-bool-params`](rules/anti-bool-params.md) - Replace boolean parameters with enums
+
+---
+
+## How to Use
+
+Reference these guidelines by task type:
+
+| Task | Primary Categories |
+|------|-------------------|
+| New function | `err-`, `own-`, `name-` |
+| New struct/API | `api-`, `name-`, `doc-` |
+| Async code | `async-`, `own-` |
+| Error handling | `err-`, `api-` |
+| Trait design | `trait-`, `api-` |
+| Testing | `test-`, `err-` |
+| Performance tuning | `perf-`, `own-`, `iter-` |
+| Code review | `anti-`, `lint-`, `fmt-` |
+| Logging | `log-` |
+| Unsafe code | `unsafe-` |
+| Crate design | `crate-`, `api-` |
+
+### Rule Application
+
+1. **Check relevant category** based on task type
+2. **Apply rules** with matching prefix
+3. **Prioritise** CRITICAL > HIGH > MEDIUM > LOW > REFERENCE
+4. **Read rule files** in `rules/` for detailed examples
+
+---
 
 ## References
 
-- [Rust API Guidelines Checklist](https://rust-lang.github.io/api-guidelines/checklist.html) — Official Rust API design checklist covering naming, interoperability, documentation, predictability, flexibility, type safety, and future-proofing (C-* rules)
-- [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/guidelines/index.html) — Comprehensive 60+ rule set covering error handling, documentation, testing, safety, performance, library design, and AI-readiness (M-* rules)
+- [Rust API Guidelines Checklist](https://rust-lang.github.io/api-guidelines/checklist.html) — Official Rust API design checklist (C-* rules)
+- [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/guidelines/index.html) — 60+ rules covering error handling, documentation, testing, safety, performance (M-* rules)
 - [Microsoft Rust Guidelines (Agent-Optimised)](https://microsoft.github.io/rust-guidelines/agents/all.txt) — Full guideline text in agent-consumable format
 - [Rust Style Guide](https://doc.rust-lang.org/style-guide/) — Official formatting and style conventions
 - [Apollo GraphQL Rust Best Practices](https://github.com/apollographql/rust-best-practices) — Production Rust patterns from Apollo Engineering
-- [Rust Clean Code](https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce) — Clean code principles applied to Rust: naming, ownership, error handling, iterators, documentation
+- [Rust Clean Code](https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce) — Clean code principles applied to Rust

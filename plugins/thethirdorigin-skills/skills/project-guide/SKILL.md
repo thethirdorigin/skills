@@ -14,8 +14,6 @@ triggers:
   - how is this project structured
   - code review preparation
 ---
-  - code review preparation
----
 
 # Project Guide — Systematic Analysis and Implementation
 
@@ -125,8 +123,8 @@ After gathering context, analyse the codebase for patterns to follow and anti-pa
 Cross-reference your findings against best practices and plan the implementation.
 
 ### 3.1 Apply Language-Specific Best Practices
-- For **React/TypeScript**: apply the react-best-practises skill rules
-- For **Rust**: apply the rust-best-practises skill rules
+- For **React/TypeScript**: apply the react-best-practises skill (78 rules across 11 categories). Reference individual rule files in `rules/` for detailed Bad→Good examples
+- For **Rust**: apply the rust-best-practises skill (121 rules across 16 categories, referencing C-*/M-* guidelines). Reference individual rule files in `rules/` for detailed Bad→Good examples
 - For **any language**: check if a corresponding best-practices skill exists in `.claude/skills/`
 - Cross-reference the project's established patterns with best-practice guidelines
 - Note where the project deviates from best practices — these may be intentional (ask if unclear)
@@ -270,8 +268,8 @@ This skill is designed to grow. When new language-specific or domain-specific sk
 
 ### Currently Available Skills
 - **prompt-best-practises** — Meta-skill for authoring and improving other skills
-- **react-best-practises** — React/TypeScript architecture, state, hooks, testing, security, accessibility
-- **rust-best-practises** — Rust API design, error handling, ownership, async, traits, documentation, linting
+- **react-best-practises** — 78 rules across 11 categories: hooks, state, components, TypeScript, error handling, security, testing, naming, lists, accessibility, anti-patterns
+- **rust-best-practises** — 121 rules across 16 categories: error handling, ownership, API design, async, unsafe, traits, naming, testing, docs, iterators, performance, linting, formatting, logging, crate design, anti-patterns (references C-*/M-* guidelines)
 - **rust-skills** — 179 concrete Rust rules with bad→good code examples (memory, compiler, async, testing, anti-patterns)
 - **Vercel react-best-practices** — React performance optimisation (69 rules)
 - **Vercel web-design-guidelines** — UI compliance auditing
