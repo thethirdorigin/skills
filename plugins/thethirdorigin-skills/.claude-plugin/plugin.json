@@ -1,0 +1,5 @@
+{
+  "name": "thethirdorigin-skills",
+  "description": "Best practices skills for Rust, React/TypeScript, prompt engineering, and systematic project analysis. Includes code quality guidelines, anti-pattern detection, and a project-guide orchestrator skill.",
+  "skills": "./skills/"
+}

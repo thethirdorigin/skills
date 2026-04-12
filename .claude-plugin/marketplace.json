@@ -1,0 +1,15 @@
+{
+  "name": "thethirdorigin",
+  "owner": {
+    "name": "thethirdorigin"
+  },
+  "description": "Private skills marketplace by thethirdorigin — best practices, code quality, and productivity skills for Claude Code",
+  "plugins": [
+    {
+      "name": "thethirdorigin-skills",
+      "version": "0.2.0",
+      "description": "Best practices skills for Rust, React/TypeScript, prompt engineering, and systematic project analysis",
+      "source": "./plugins/thethirdorigin-skills"
+    }
+  ]
+}
