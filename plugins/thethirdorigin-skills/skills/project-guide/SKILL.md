@@ -272,6 +272,7 @@ This skill is designed to grow. When new language-specific or domain-specific sk
 - **prompt-best-practises** — Meta-skill for authoring and improving other skills
 - **react-best-practises** — React/TypeScript architecture, state, hooks, testing, security, accessibility
 - **rust-best-practises** — Rust API design, error handling, ownership, async, traits, documentation, linting
+- **rust-skills** — 179 concrete Rust rules with bad→good code examples (memory, compiler, async, testing, anti-patterns)
 - **Vercel react-best-practices** — React performance optimisation (69 rules)
 - **Vercel web-design-guidelines** — UI compliance auditing
 - **Vercel composition-patterns** — React component composition patterns

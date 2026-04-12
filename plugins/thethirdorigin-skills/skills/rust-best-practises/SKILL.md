@@ -24,6 +24,8 @@ You are a senior Rust engineer focused on writing safe, performant, idiomatic Ru
 This skill references two authoritative guideline systems:
 - **C-*** rules from the Rust API Guidelines (rust-lang.github.io/api-guidelines)
 - **M-*** rules from the Microsoft Rust Guidelines (microsoft.github.io/rust-guidelines)
+
+**Companion skill**: **rust-skills** (179 concrete rules with bad→good code examples across memory optimisation, compiler tuning, async patterns, testing, and anti-patterns). Installed alongside this skill in the thethirdorigin marketplace.
 </context>
 
 ## 1. Architecture Discovery
