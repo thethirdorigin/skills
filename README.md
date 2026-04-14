@@ -6,13 +6,13 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 
 | Skill | Type | What it covers |
 |-------|------|----------------|
-| **project-guide** | Workflow | 6-phase workflow for analysing any codebase and building features systematically. Orchestrates all other skills. Includes rustgraph-based discovery and audit quality gate. |
-| **audit** | Workflow | Master code auditor. Detects the project stack, invokes the right sub-skills, gathers quantitative data, and produces a severity-ranked findings report. |
+| **project-guide** | Workflow | 6-phase workflow for analysing any codebase and building features systematically. Orchestrates all other skills. Includes codegraph-based discovery and audit quality gate. |
+| **audit** | Workflow | Master code auditor. Detects the project stack, uses codegraph for structural analysis on all stacks, invokes language-specific sub-skills, and produces a severity-ranked findings report. |
 | **reviewpr** | Workflow | Deep code review for GitHub PRs. Delegates analysis to audit, then posts findings as line-specific comments. |
 | **grill-me** | Workflow | Stress-test a plan or design through relentless questioning. |
+| **codegraph** | Tool | Semantic code intelligence for all languages. MCP tools, CLI, database schema, and reusable SQL query patterns for exploring any codebase via a knowledge graph. Replaces grep/glob for symbol search, call tracing, and structural exploration. Used by audit and project-guide as a composable building block. |
 | **rust-best-practises** | Standards | ~280 rules across 20 categories. Error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, performance, project structure, linting, and anti-patterns. |
 | **react-best-practises** | Standards | 78 rules across 11 categories. Hooks, state, components, TypeScript, error handling, security, testing, accessibility, and anti-patterns. Complements Vercel performance skill. |
-| **rustgraph** | Tool | Tool-knowledge skill for the rustgraph binary. CLI reference, database schema, and reusable SQL query patterns for exploring Rust codebases via a knowledge graph. |
 | **prompt-best-practises** | Meta | Meta-skill for authoring other skills. XML structuring, examples, role assignment, agentic patterns. |
 
 ## Installation
@@ -32,7 +32,7 @@ ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/review
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/grill-me ~/.claude/skills/grill-me
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rust-best-practises ~/.claude/skills/rust-best-practises
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/react-best-practises ~/.claude/skills/react-best-practises
-ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/rustgraph ~/.claude/skills/rustgraph
+ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/codegraph ~/.claude/skills/codegraph
 ln -s ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/prompt-best-practises ~/.claude/skills/prompt-best-practises
 ```
 
@@ -90,7 +90,7 @@ This installs (per-project, into `.claude/skills/`):
 project-guide (orchestrator)
 ├── Phase 1: Context Gathering
 │   ├── discovers project structure, tech stack, git history
-│   └── Rust projects: indexes codebase via rustgraph skill
+│   └── ALL projects: indexes codebase via codegraph skill (symbol graph, call tracing)
 ├── Phase 2: Pattern Identification ─── finds conventions, shared code, anti-patterns
 ├── Phase 3: Analysis ─── cross-references language-specific skills:
 │   ├── rust-best-practises ─── ~280 Rust rules (ownership, API, memory, async, ...)
@@ -103,14 +103,21 @@ project-guide (orchestrator)
 
 audit (code quality orchestrator)
 ├── Detects stack (Rust, React/TS, Python, Go, ...)
-├── Rust: rust-best-practises + rustgraph (knowledge graph queries)
-├── React/TS: react-best-practises
+├── ALL stacks: codegraph (structural analysis, call graph, impact, symbol search)
+├── Rust: rust-best-practises (language-specific rules)
+├── React/TS: react-best-practises (language-specific rules)
 ├── Cross-correlates findings, deduplicates, ranks by severity
 └── Produces evidence-based report with file:line references
 
+codegraph (composable building block)
+├── Invoked by audit, project-guide, or directly by user
+├── Semantic search, call graph, impact analysis, file structure
+├── MCP tools (primary) or CLI + raw SQL (fallback)
+└── Supports 17+ languages: TS, JS, Python, Go, Rust, Java, C#, ...
+
 reviewpr (PR wrapper)
 ├── Gathers PR context via gh CLI (diff, comments, changed files)
-├── Delegates code analysis to audit skill
+├── Delegates code analysis to audit skill (which uses codegraph)
 ├── Deduplicates against existing reviewer comments
 └── Posts approved findings as inline GitHub comments
 
@@ -132,7 +139,8 @@ Skills activate automatically based on what you're doing:
 | "Review this PR" | reviewpr |
 | "Grill me on this design" | grill-me |
 | "I want to create a new skill" | prompt-best-practises |
-| "Use rustgraph" / "Query knowledge graph" | rustgraph |
+| "Use codegraph" / "Query knowledge graph" / "Find symbol" | codegraph |
+| "Explore codebase" / "What calls this?" / "Trace callers" | codegraph |
 
 ## Adding new skills
 
@@ -163,7 +171,7 @@ plugins/thethirdorigin-skills/
     react-best-practises/
       SKILL.md                        <- 78 React/TS rules across 11 categories
       rules/                          <- individual rule files
-    rustgraph/SKILL.md                <- rustgraph tool knowledge
+    codegraph/SKILL.md                <- codegraph semantic code intelligence (all languages)
     prompt-best-practises/SKILL.md    <- meta-skill for skill authoring
 ```
 
@@ -179,7 +187,7 @@ These skills were built from authoritative sources:
 - [Apollo Rust Best Practices](https://github.com/apollographql/rust-best-practices) — Production patterns
 - [Rust Clean Code](https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce)
 - [leonardomso/rust-skills](https://github.com/leonardomso/rust-skills) — Concrete rules with code examples (MIT, merged into rust-best-practises)
-- [rustgraph](https://github.com/thethirdorigin/rustgraph) — Knowledge graph builder for Rust codebases
+- [CodeGraph](https://github.com/colbymchenry/codegraph) — Semantic code intelligence for all languages
 
 **React/TypeScript**
 - [React Rules](https://react.dev/reference/rules) — Official component and hook rules

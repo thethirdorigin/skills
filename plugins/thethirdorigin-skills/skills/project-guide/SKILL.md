@@ -21,9 +21,9 @@ triggers:
 You are a senior engineer joining a project. Before writing any code, you systematically analyse the codebase to understand its architecture, conventions, patterns, and quality standards. You match existing patterns rather than imposing your own preferences, and you leave the codebase better than you found it.
 
 This guide orchestrates a 6-phase workflow. For language-specific rules, defer to the appropriate skill:
+- **Codebase exploration (all languages)**: codegraph skill (semantic search, call graph, impact analysis)
 - **React/TypeScript code**: react-best-practises skill
 - **Rust code**: rust-best-practises skill (unified rulebook, ~280 rules)
-- **Rust codebase exploration**: rustgraph skill (knowledge graph queries)
 - **Code quality verification**: audit skill (evidence-based assessment)
 - **Writing new skills**: prompt-best-practises skill
 
@@ -75,13 +75,15 @@ When starting a new session or feature, ALWAYS perform these discovery steps bef
 - Find similar features already implemented — these are your pattern templates
 - Read the module structure where new code will live
 
-### 1.6 Rust Projects: Knowledge Graph Discovery
-For Rust projects, use the **rustgraph** skill to build a richer structural picture:
-- Index the workspace: `rustgraph index . -o rustgraph.db`
-- Query overview stats for entity counts (files, structs, traits, functions, edges)
-- Identify layer boundaries by querying module structure and dependency edges
-- Map high fan-in functions (many callers) to understand critical code paths
-- Query the dependency graph to understand crate relationships
+### 1.6 Knowledge Graph Discovery
+For any project, use the **codegraph** skill to build a richer structural picture:
+- Check for `.codegraph/` directory; if absent, run `codegraph init -i` to index the project
+- Run `codegraph_status` for overview metrics (files, nodes, edges, breakdown by kind and language)
+- Use `codegraph_files` to map project structure (faster than filesystem scanning)
+- Use `codegraph_search` to discover key symbols (services, handlers, models, routes)
+- Identify layer boundaries by querying cross-file edges in the knowledge graph
+- Map high fan-in symbols (many callers) to understand critical code paths
+- Use `codegraph_callers` / `codegraph_callees` on entry points to trace request flows
 
 This gives you quantitative context that file browsing alone cannot provide. The knowledge graph persists for the session and can be reused in Phase 6 (Quality Gate).
 </instructions>
@@ -262,7 +264,7 @@ After implementation is complete, run the **audit** skill to verify the work mee
 ### 6.1 Scope the Audit
 - Focus the audit on the files changed or added during implementation
 - Include any files touched as part of boy-scout-rule improvements
-- For Rust projects, reuse the rustgraph database from Phase 1.6 (re-index if files changed significantly)
+- Reuse the CodeGraph index from Phase 1.6 (run `codegraph sync` if files changed significantly)
 
 ### 6.2 Run the Audit
 - Invoke the audit skill against the changed files
@@ -307,11 +309,11 @@ These principles guide ALL decisions, in priority order:
 This skill is designed to grow. When new language-specific or domain-specific skills are added, update the cross-reference list below.
 
 ### Currently Available Skills
+- **codegraph** — Semantic code intelligence for all languages: symbol search, call graph, impact analysis, structural exploration via MCP tools, CLI, or raw SQL. Replaces grep/glob for symbol discovery. Used by audit and project-guide as a composable building block
 - **prompt-best-practises** — Meta-skill for authoring and improving other skills
 - **react-best-practises** — React/TypeScript conventions: hooks, state, components, TypeScript, error handling, security, testing, naming, lists, accessibility, anti-patterns (78 rules)
 - **rust-best-practises** — Comprehensive Rust rulebook: error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, iterators, performance, project structure, linting, formatting, logging, crate design, anti-patterns (~280 rules)
-- **rustgraph** — Tool knowledge for the rustgraph binary: indexing Rust codebases into a SQLite knowledge graph, CLI reference, reusable SQL query patterns
-- **audit** — Master code auditor: detects the project stack, orchestrates sub-skills (rust-best-practises + rustgraph for Rust, react-best-practises for React/TS), produces evidence-based severity-ranked findings
+- **audit** — Master code auditor: detects the project stack, uses codegraph for structural analysis on all stacks, orchestrates language-specific sub-skills (rust-best-practises, react-best-practises), produces evidence-based severity-ranked findings
 - **Vercel react-best-practices** — React performance optimisation (69 rules)
 - **Vercel web-design-guidelines** — UI compliance auditing
 - **Vercel composition-patterns** — React component composition patterns

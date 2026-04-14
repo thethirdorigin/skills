@@ -3,7 +3,8 @@ name: audit
 description: >
   Master code auditor that detects the project stack and orchestrates the right
   sub-skills to produce an evidence-based, severity-ranked audit report.
-  Supports Rust (via rustgraph + rust-best-practises) and React/TypeScript
+  Uses codegraph for all stacks (semantic search, call graph, impact analysis).
+  Supports Rust (via rust-best-practises) and React/TypeScript
   (via react-best-practises). Extensible to other stacks.
 user-invocable: true
 triggers:
@@ -95,8 +96,8 @@ Exclude these from findings:
 You are a senior engineer performing a systematic audit of a codebase. You combine quantitative measurement with critical reading of high-risk code. Measurement catches structural issues; reading catches logic flaws, missing defences, and efficiency problems that no query can find. Both are required for every audit.
 
 Sub-skills in your toolbelt (loaded automatically by the plugin):
+- **codegraph** — Semantic code intelligence: symbol search, call graph, impact analysis, structural exploration. Used for ALL stacks, not just Rust. Replaces grep/glob for symbol discovery
 - **rust-best-practises** — Rust coding standards, API design, and best practices (~280 rules)
-- **rustgraph** — Tool knowledge for indexing and querying a Rust codebase knowledge graph
 - **react-best-practises** — React/TypeScript conventions and best practices (78 rules)
 
 This skill follows a strict **measure, read, judge** methodology. Every finding must cite file:line references. Every strength must cite quantitative evidence.
@@ -117,7 +118,7 @@ This skill follows a strict **measure, read, judge** methodology. Every finding 
 <anti-patterns>
 - Declaring code "excellent" or "solid" without quantitative backing
 - Saying "acceptable" without naming the specific tradeoff
-- Reporting grep-based findings without reading the surrounding context
+- Reporting grep-based findings without reading the surrounding context (use codegraph_node or Read to verify)
 - Flagging test code for `.unwrap()` usage
 - Flagging port traits as over-abstraction when mockall is in dev-dependencies
 - Reporting the same issue at multiple severity levels
@@ -130,24 +131,26 @@ This skill follows a strict **measure, read, judge** methodology. Every finding 
 
 ---
 
-## Step 1 — Detect the stack
+## Step 1 — Detect the stack and initialize CodeGraph
 
 <instructions>
 Scan the project root for stack indicators. A project may have multiple stacks (e.g. Rust backend + React frontend in a monorepo).
 
 | Indicator | Stack | Sub-skills to invoke |
 |-----------|-------|---------------------|
-| `Cargo.toml` | Rust | `rust-best-practises`, `rustgraph` |
-| `package.json` with React/Next.js/Vue | React/TypeScript | `react-best-practises` |
-| `package.json` without React | Node.js/TypeScript | General code quality principles |
-| `pyproject.toml` / `requirements.txt` | Python | General code quality principles |
-| `go.mod` | Go | General code quality principles |
+| `Cargo.toml` | Rust | `codegraph`, `rust-best-practises` |
+| `package.json` with React/Next.js/Vue | React/TypeScript | `codegraph`, `react-best-practises` |
+| `package.json` without React | Node.js/TypeScript | `codegraph`, general code quality principles |
+| `pyproject.toml` / `requirements.txt` | Python | `codegraph`, general code quality principles |
+| `go.mod` | Go | `codegraph`, general code quality principles |
+
+**CodeGraph is mandatory for ALL stacks.** Use the **codegraph** skill to initialize and index the project. If `.codegraph/` does not exist, run `codegraph init -i`. If the user declines, fall back to grep-based analysis but note the reduced audit quality.
 
 Record which stacks are present and which sub-skills apply.
 
 For stacks without a dedicated best-practices skill, apply general code quality principles: DRY, separation of concerns, error handling, naming consistency, test coverage.
 
-Output: "Detected stacks: [list]. Applying: [sub-skills]."
+Output: "Detected stacks: [list]. Applying: [sub-skills]. CodeGraph: initialized/unavailable."
 </instructions>
 
 ---
@@ -157,44 +160,49 @@ Output: "Detected stacks: [list]. Applying: [sub-skills]."
 <instructions>
 Run data-gathering steps for each detected stack. Store all results internally for Steps 3-5. Do not output findings yet.
 
-### Rust projects
+### All stacks — CodeGraph structural analysis
 
-**rustgraph is mandatory for Rust audits.** You MUST use the rustgraph skill to index and query the codebase — do not fall back to grep-only analysis. If you cannot locate the `rustgraph` binary (check `which rustgraph`, `target/release/rustgraph`, `~/github/thethirdorigin/rustgraph/target/release/rustgraph`), **stop and ask the user**: "I can't find the rustgraph binary. Where is it located? (e.g. full path to the binary, or the repo directory where it was built)". Do not proceed with the Rust audit until rustgraph is available.
+**CodeGraph is mandatory for all audits.** Use the **codegraph** skill to gather structural data before stack-specific analysis. If CodeGraph is unavailable (user declined initialization), fall back to grep but note reduced audit quality.
 
-Use the **rustgraph** skill to:
-1. Locate the binary and index the workspace
-2. Run `rustgraph stats` for overview metrics
-3. Execute the relevant SQL queries from the rustgraph skill's query library:
-   - Structural: largest files, entity distribution
-   - Types: pub structs with derives, large structs, missing Debug derives
-   - Functions: long functions, high-parameter functions, high fan-in functions, orphan functions
-   - Traits: single-implementor traits, trait-heavy files
-   - Call graph: unwrap/expect outside tests, complex functions (most outgoing calls)
-   - Dependencies: dev dependencies (check for mockall), allow(dead_code) annotations
-   - Errors: Result<_, String> return types
-4. Execute additional queries for correctness and resilience:
-   - Blocking in async: functions where `is_async = 1` that call `std::fs::*` or `std::thread::sleep`
-   - Unbounded spawning: `function_calls` where `callee_name = 'spawn'` inside functions that also contain loop-like patterns (flag for manual verification)
-   - Silent error swallowing: `function_calls` where `callee_name IN ('unwrap_or_default', 'ok', 'unwrap_or')` on Result types in non-test code (flag for manual verification — some are intentional)
+1. Run `codegraph_status` (or `codegraph status`) for overview metrics: file count, node count, edge count, breakdown by kind and language
+2. Execute SQL queries against `.codegraph/codegraph.db` from the codegraph skill's query library:
+   - **Structural overview**: node/edge distribution by kind, files by symbol count, language distribution
+   - **Long functions**: functions/methods where `(end_line - start_line) > 40`
+   - **High fan-in symbols**: symbols with > 5 callers via `edges` where `kind = 'calls'` (high-impact change targets)
+   - **Orphan functions**: not called by anything and not exported
+   - **Complex functions**: most outgoing calls (high fan-out)
+   - **Undocumented public symbols**: exported symbols with null/empty docstring
+   - **God objects**: classes/structs with > 8 fields via `contains` edges to field/property nodes
+   - **Single-implementation interfaces/traits**: interfaces with exactly 1 implementor
+3. Use `codegraph_callers` / `codegraph_callees` to trace call graphs for flagged symbols
+4. Use `codegraph_impact` to determine blast radius of potential findings
 
-### React/TypeScript projects
+### Rust projects (additional)
 
-1. Check for linter configuration (`.eslintrc`, `biome.json`, `tsconfig.json`)
-2. Run the project's configured linter if available
-3. Scan for patterns using file reads and grep:
-   - Components over 500 lines
-   - Files with `any` type usage
-   - Missing error boundaries (search for ErrorBoundary imports)
+Use CodeGraph SQL queries plus Grep for Rust-specific patterns:
+1. **Async functions**: query nodes where `is_async = 1`, then Grep those files for `std::fs::` or `std::thread::sleep` (blocking in async context)
+2. **Error patterns**: Grep for `Result<_, String>` return types, `.unwrap()` / `.expect()` outside test modules
+3. **Unbounded spawning**: Grep for `tokio::spawn` inside loop bodies (flag for manual verification)
+4. **Silent error swallowing**: Grep for `if let Err(_)` and `let _ =` on fallible operations in non-test code
+5. **Derive analysis**: Grep for `#[derive(` to check consistency across sibling structs
+6. **Dev dependencies**: check `Cargo.toml` for `mockall` (justifies single-impl port traits)
+7. **Dead code annotations**: Grep for `#[allow(dead_code)]` without justification comments
+
+### React/TypeScript projects (additional)
+
+Use CodeGraph for symbol-level queries plus Grep for pattern-level scans:
+1. **Component size**: use CodeGraph SQL to find component nodes where `(end_line - start_line) > 500`
+2. **Symbol search**: use `codegraph_search` to find ErrorBoundary usage, hook definitions, context providers
+3. **Call graph**: use `codegraph_callers` / `codegraph_callees` on flagged components to understand data flow
+4. Check for linter configuration (`.eslintrc`, `biome.json`, `tsconfig.json`) and run the linter if available
+5. Grep for patterns CodeGraph does not index:
+   - `any` type usage (Grep for `: any` and `as any`)
    - `dangerouslySetInnerHTML` usage
-   - Inline styles in components
    - Index-based keys in lists (`key={index}`, `key={i}`)
-   - Missing loading/error states in async data fetching
    - `localStorage`/`sessionStorage` for auth tokens
-4. Scan for additional correctness and efficiency patterns:
-   - `useEffect` without return statement (missing cleanup — search for `useEffect(` and verify the callback returns a cleanup function)
-   - Props passed through 3+ component levels without being used (prop drilling — requires reading component trees)
-   - Barrel file re-exports (`index.ts` that re-exports `*` from submodules — tree-shaking killers)
-   - `as` type assertions (forced casts bypassing narrowing — search for ` as `)
+   - `useEffect` without cleanup return
+   - Barrel file re-exports (`export *` in `index.ts`)
+   - `as` type assertions (Grep for ` as `)
 
 ### All stacks
 
@@ -320,7 +328,7 @@ Classify each missing defence using the severity definitions. A missing timeout 
 
 ### Efficiency Assessment
 
-Search for these patterns using grep and source reading. Each confirmed pattern is a finding.
+Search for these patterns using codegraph (for call graph and symbol-level queries) and Grep (for text patterns). Each confirmed pattern is a finding.
 
 - N+1 queries: loop body containing `.await` on a database/API call (batch or join instead)
 - Quadratic iteration: nested `for`/`iter` over the same or related collections
@@ -354,22 +362,23 @@ Search for these patterns using grep and source reading. Each confirmed pattern 
 <instructions>
 Perform cross-file correlation before producing the report. These checks catch systemic issues that per-file analysis misses.
 
-### Rust-specific correlation (requires rustgraph data)
+### All stacks — CodeGraph cross-correlation
 
-1. **Derive consistency**: group pub structs by file or module; flag files where sibling structs derive different trait sets
-2. **Naming consistency**: group service traits, handler functions, and repository traits; flag naming pattern outliers
-3. **Error handling consistency**: check whether all handlers map errors the same way and all repositories return the same error type
-4. **Sibling comparison**: compare all *Repository traits for method signature consistency; compare all *Handler files for structural consistency
-5. **Call graph analysis**: identify functions with high fan-in (many callers) that lack documentation — these are high-risk change targets
-6. **Dependency coupling**: use `rustgraph deps <NAME> --reverse` to identify types/functions with excessive dependents
+Use the **codegraph** skill for cross-file correlation on any stack:
+1. **Call graph analysis**: use `codegraph_callers` to identify symbols with high fan-in that lack documentation — these are high-risk change targets
+2. **Impact chains**: use `codegraph_impact` on high-fan-in symbols to map dependency cascades
+3. **Naming consistency**: use `codegraph_search` by kind (e.g. kind "class", kind "interface") to group sibling types and flag naming pattern outliers
+4. **File dependency coupling**: use CodeGraph SQL to query cross-file edges and identify tightly coupled file pairs
 
-### Check for DI justification (Rust)
+### Rust-specific correlation (additional)
 
-Before flagging single-impl traits as over-abstraction:
-```sql
-SELECT dep_name FROM crate_deps WHERE dep_kind = 'dev' AND dep_name = 'mockall';
-```
-If mockall is present, port traits with a single production implementation are justified for test mocking. Note this in findings rather than flagging it.
+1. **Derive consistency**: Grep for `#[derive(` to group pub structs by module; flag siblings with different derive sets
+2. **Error handling consistency**: check whether all handlers map errors the same way and all repositories return the same error type
+3. **Sibling comparison**: compare all *Repository traits for method signature consistency; compare all *Handler files for structural consistency
+
+**Check for DI justification (Rust)**
+
+Before flagging single-impl traits as over-abstraction, check `Cargo.toml` for mockall in dev-dependencies. If present, port traits with a single production implementation are justified for test mocking. Note this in findings rather than flagging it.
 
 ### React/TypeScript-specific correlation
 
@@ -508,36 +517,27 @@ BAD strength (hollow praise):
 <instructions>
 After presenting the report, offer interactive exploration options based on the detected stack.
 
-### Rust projects (via rustgraph)
+### All stacks (via codegraph)
 
 ```
-Entity exploration:
-- "Show all context for function <name>"    -> rustgraph function <name>
-- "Show all context for struct <type>"      -> rustgraph struct <type>
-- "Show trait implementors for <trait>"     -> rustgraph trait <trait>
+Symbol exploration:
+- "Show details for <name>"              -> codegraph_node with includeCode: true
+- "Search for <term>"                    -> codegraph_search
 
 Relationship traversal:
-- "What depends on <name>?"                -> rustgraph deps <name> --reverse
-- "What does <name> depend on?"            -> rustgraph deps <name>
-- "Show the call graph around <function>"  -> rustgraph graph <name> --format dot
+- "What calls <name>?"                   -> codegraph_callers
+- "What does <name> call?"              -> codegraph_callees
+- "What's affected by changing <name>?" -> codegraph_impact
 
-Search and discovery:
-- "Search for <term>"                      -> rustgraph search <term>
-- "Show everything in <file>"             -> rustgraph file <path>
+Deep exploration:
+- "Explain how <system> works"          -> codegraph_explore (in explore agent)
+- "Show the file structure of <dir>"    -> codegraph_files with path filter
 
-Or run raw SQL against the graph.
+Raw SQL:
+- Any structural query                  -> sqlite3 .codegraph/codegraph.db "<SQL>"
 ```
 
-### React/TypeScript projects
-
-```
-- "Show me all components over N lines"
-- "Find all uses of <pattern>"
-- "Show the import graph for <component>"
-- "List all error boundaries"
-```
-
-### All stacks
+### Additional drill-down
 
 ```
 - "Drill into finding #N"     -> Read the file, show context, explain the issue
@@ -545,7 +545,7 @@ Or run raw SQL against the graph.
 - "What are the most-changed files?"
 ```
 
-For drill-down requests, read relevant source files and provide full context with your analysis.
+For drill-down requests, use codegraph tools first for symbol and relationship context, then read source files for full detail.
 </instructions>
 
 ---
@@ -556,4 +556,4 @@ For drill-down requests, read relevant source files and provide full context wit
 - [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/) — M-* rules for error handling, async, documentation, testing, safety
 - [Rust Unofficial Patterns](https://rust-unofficial.github.io/patterns/) — Idioms, design patterns, and anti-patterns
 - [React Rules](https://react.dev/reference/rules) — Official React rules
-- [rustgraph](https://github.com/thethirdorigin/rustgraph) — Knowledge graph builder for Rust codebases
+- [CodeGraph](https://github.com/colbymchenry/codegraph) — Semantic code intelligence for all languages
