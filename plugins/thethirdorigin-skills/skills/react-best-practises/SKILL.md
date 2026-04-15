@@ -16,6 +16,10 @@ triggers:
   - form implementation
   - React testing
   - React state management
+file-patterns:
+  - .tsx
+  - .jsx
+  - frontend/
 ---
 
 # React and TypeScript Best Practices

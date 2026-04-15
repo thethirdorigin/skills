@@ -1,1 +1,3 @@
 .DS_Store
+hooks/.cache/
+__pycache__/

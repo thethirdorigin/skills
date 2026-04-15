@@ -13,6 +13,11 @@ triggers:
   - add page to client app
   - ascend shared components
   - ascend platform frontend
+file-patterns:
+  - frontend/apps/admin/
+  - frontend/apps/client/
+  - frontend/packages/shared/
+  - frontend/mocked/
 ---
 
 # Building Frontend Pages — Ascend Platform

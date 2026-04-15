@@ -15,6 +15,8 @@ triggers:
   - codebase audit
   - structural analysis
   - code review
+dependencies:
+  - codegraph
 ---
 
 <!-- Reference: Severity Classification (placed at top per long-context best practice) -->
@@ -95,13 +97,29 @@ Exclude these from findings:
 <context>
 You are a senior engineer performing a systematic audit of a codebase. You combine quantitative measurement with critical reading of high-risk code. Measurement catches structural issues; reading catches logic flaws, missing defences, and efficiency problems that no query can find. Both are required for every audit.
 
-Sub-skills in your toolbelt (loaded automatically by the plugin):
-- **codegraph** — Semantic code intelligence: symbol search, call graph, impact analysis, structural exploration. Used for ALL stacks, not just Rust. Replaces grep/glob for symbol discovery
-- **rust-best-practises** — Rust coding standards, API design, and best practices (~280 rules)
-- **react-best-practises** — React/TypeScript conventions and best practices (78 rules)
-
 This skill follows a strict **measure, read, judge** methodology. Every finding must cite file:line references. Every strength must cite quantitative evidence.
 </context>
+
+## Step 0 — Load required sub-skills
+
+<instructions>
+Before proceeding to Step 1, you MUST load sub-skill instructions by invoking the
+Skill tool for each one. These skills are NOT automatically in context — you must
+load them explicitly so their full instructions, tool references, and query patterns
+are available to you.
+
+1. **REQUIRED for ALL audits**: Invoke the Skill tool with `skill="codegraph"`.
+   This loads semantic code intelligence instructions: the tool selection matrix,
+   MCP tool reference, SQL query patterns, and initialization steps that Steps 2-5
+   depend on.
+2. **REQUIRED for Rust projects** (if `Cargo.toml` detected): Invoke the Skill tool
+   with `skill="rust-best-practises"` to load ~280 Rust coding standards.
+3. **REQUIRED for React/TypeScript projects** (if `package.json` with React/Next.js
+   detected): Invoke the Skill tool with `skill="react-best-practises"` to load
+   78 React/TypeScript conventions.
+
+**Do not proceed to Step 1 until at least the codegraph skill is loaded.**
+</instructions>
 
 <instructions>
 
@@ -144,7 +162,7 @@ Scan the project root for stack indicators. A project may have multiple stacks (
 | `pyproject.toml` / `requirements.txt` | Python | `codegraph`, general code quality principles |
 | `go.mod` | Go | `codegraph`, general code quality principles |
 
-**CodeGraph is mandatory for ALL stacks.** Use the **codegraph** skill to initialize and index the project. If `.codegraph/` does not exist, run `codegraph init -i`. If the user declines, fall back to grep-based analysis but note the reduced audit quality.
+**CodeGraph is mandatory for ALL stacks.** Following the codegraph skill (loaded in Step 0), check for `.codegraph/` and initialize if needed. If `.codegraph/` does not exist, run `codegraph init -i`. If the user declines, fall back to grep-based analysis but note the reduced audit quality.
 
 Record which stacks are present and which sub-skills apply.
 

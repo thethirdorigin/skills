@@ -13,6 +13,8 @@ triggers:
   - project context
   - how is this project structured
   - code review preparation
+dependencies:
+  - codegraph
 ---
 
 # Project Guide — Systematic Analysis and Implementation
@@ -35,6 +37,20 @@ Additional companion skills (install per-project with `npx skills add vercel-lab
 
 This skill is **fully generic** — it works with any project, any tech stack. All context is discovered dynamically.
 </context>
+
+## Phase 0 — Load Sub-Skills
+
+<instructions>
+Before starting Phase 1, invoke the Skill tool to load required dependencies:
+
+1. **Always**: Invoke the Skill tool with `skill="codegraph"` (required for Phase 1.6 Knowledge Graph Discovery)
+2. **Rust projects** (if `Cargo.toml` detected): Invoke the Skill tool with `skill="rust-best-practises"`
+3. **React/TypeScript projects** (if `package.json` with React): Invoke the Skill tool with `skill="react-best-practises"`
+4. **Quality gate (Phase 6)**: Invoke the Skill tool with `skill="audit"` (can be deferred until Phase 6)
+
+Load codegraph first, then language-specific skills as detected. These skills are NOT
+automatically in context — you must load them explicitly.
+</instructions>
 
 ---
 

@@ -11,6 +11,8 @@ triggers:
   - code review
   - review PR
   - check this pull request
+dependencies:
+  - audit
 ---
 
 # PR Code Review
@@ -22,8 +24,11 @@ Follow the steps below sequentially. Each step specifies exactly what to do and 
 
 **Style rule**: Never use em-dashes in any output (tables, comments, PR summaries, or text shown to the user). Use commas, semicolons, periods, or parentheses instead.
 
-Sub-skills (loaded automatically by the plugin):
-- **audit** — Stack-aware code auditor with severity classification and evidence-based methodology
+Before starting Step 0, invoke the Skill tool with `skill="audit"` to load the code
+quality analysis methodology. The audit skill provides severity classification,
+best-practice rule references, and the evidence-based methodology used in Step 3b.
+The audit skill will instruct you to load its own dependencies (codegraph,
+language-specific rules). Do not proceed until audit is loaded.
 </context>
 
 ---

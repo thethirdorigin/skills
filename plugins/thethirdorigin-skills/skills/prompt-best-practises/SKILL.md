@@ -196,17 +196,101 @@ Don't use class components. Type all props. Don't use any.
 - **Stale references**: Linking to patterns that may have changed — prefer dynamic discovery
 </anti-patterns>
 
-## 10. Skill File Template
+## 10. Skill Composition
+
+<instructions>
+
+### How skills load sub-skills
+
+Skills are NOT automatically in context when another skill references them.
+Claude must explicitly invoke the Skill tool to load each dependency. Two
+mechanisms ensure this happens:
+
+1. **Hooks** — The `skill-activation.py` hook reads `dependencies` from each
+   SKILL.md frontmatter, resolves the full chain transitively, and injects
+   Skill tool invocation instructions into Claude's context before the skill
+   even starts.
+2. **In-skill instructions** — Each parent skill should have a "Step 0" or
+   "Phase 0" that explicitly tells Claude to invoke the Skill tool for its
+   dependencies. This is the safety net in case hooks are not installed.
+
+Both mechanisms are needed. The hook fires first (belt), the in-skill
+instruction reinforces (suspenders).
+
+### Declaring dependencies
+
+Add `dependencies` to the YAML frontmatter — list the skill names this skill
+needs loaded before it can execute:
+
+```yaml
+dependencies:
+  - codegraph
+```
+
+Dependencies are resolved transitively. If `reviewpr` depends on `audit` and
+`audit` depends on `codegraph`, loading `reviewpr` will resolve all three in
+the right order: codegraph → audit → reviewpr.
+
+### Writing Step 0
+
+If your skill depends on other skills, add a Step 0 section immediately after
+the `<context>` block:
+
+```markdown
+## Step 0 — Load required sub-skills
+
+<instructions>
+Before proceeding to Step 1, invoke the Skill tool for each dependency:
+
+1. **REQUIRED**: Invoke the Skill tool with `skill="codegraph"`
+2. **If Cargo.toml detected**: Invoke the Skill tool with `skill="rust-best-practises"`
+
+Do not proceed to Step 1 until dependencies are loaded.
+</instructions>
+```
+
+Key rules:
+- Place Step 0 before any other steps — it must execute first
+- Use the exact phrase `Invoke the Skill tool with skill="<name>"`
+- State which dependencies are always required vs conditional on stack detection
+- Include a gate: "Do not proceed until X is loaded"
+- Do NOT say "loaded automatically by the plugin" — this is false and causes
+  Claude to skip the loading step
+
+### Declaring file patterns
+
+Add `file-patterns` to the YAML frontmatter for skills that should be
+suggested when specific files are edited:
+
+```yaml
+file-patterns:
+  - .tsx              # extension match (file must end with this)
+  - frontend/         # directory match (file path must contain this)
+  - Cargo.toml        # exact filename match
+```
+
+The `file-tracker.py` hook matches edited file paths against these patterns
+and suggests the relevant skills. No config files to maintain.
+
+</instructions>
+
+## 11. Skill File Template
 
 Use this template when creating a new skill:
 
 ```markdown
 ---
+name: skill-name
 description: One-line description of what the skill does and when to use it
 triggers:
   - natural language trigger phrase 1
   - natural language trigger phrase 2
   - natural language trigger phrase 3
+dependencies:                          # optional — skills to load first
+  - codegraph
+file-patterns:                         # optional — file edits that suggest this skill
+  - .tsx
+  - frontend/
 ---
 
 # Skill Name
@@ -216,12 +300,20 @@ triggers:
   All context is discovered dynamically — no hardcoded project paths.
 </context>
 
-## Section 1: Discovery
+## Step 0 — Load required sub-skills (if dependencies exist)
+
+<instructions>
+Before proceeding, invoke the Skill tool for each dependency:
+1. **REQUIRED**: Invoke the Skill tool with `skill="codegraph"`
+Do not proceed until dependencies are loaded.
+</instructions>
+
+## Step 1: Discovery
 <instructions>
   Steps to understand the current project state before acting.
 </instructions>
 
-## Section 2: Rules and Guidelines
+## Step 2: Rules and Guidelines
 <instructions>
   Primary directives — what TO do.
 </instructions>
@@ -230,7 +322,7 @@ triggers:
   What NOT to do, with explanations of why.
 </anti-patterns>
 
-## Section 3: Examples
+## Step 3: Examples
 <examples>
 <example>
   GOOD: [concrete demonstration]
@@ -248,9 +340,14 @@ triggers:
 
 Before finalising a skill, verify:
 
-- [ ] Frontmatter has `description` and `triggers`
+- [ ] Frontmatter has `name`, `description`, and `triggers`
+- [ ] `name` matches the directory name
 - [ ] Description is specific enough for trigger matching
 - [ ] Triggers use natural language phrases users would actually say
+- [ ] `dependencies` lists any skills that must be loaded first
+- [ ] `file-patterns` lists file extensions or directories that suggest this skill
+- [ ] If dependencies exist, a Step 0 with explicit Skill tool invocations is present
+- [ ] Step 0 does NOT say "loaded automatically" — uses `Invoke the Skill tool with skill="..."`
 - [ ] Instructions use positive framing (what TO do)
 - [ ] Anti-patterns section exists with explanations
 - [ ] At least 2-3 examples with GOOD/BAD labels

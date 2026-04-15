@@ -21,6 +21,10 @@ triggers:
   - Rust performance
   - memory optimisation
   - Rust async
+file-patterns:
+  - .rs
+  - Cargo.toml
+  - backend/
 ---
 
 # Rust Best Practices
