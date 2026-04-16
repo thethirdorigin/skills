@@ -92,14 +92,33 @@ When starting a new session or feature, ALWAYS perform these discovery steps bef
 - Read the module structure where new code will live
 
 ### 1.6 Knowledge Graph Discovery
-For any project, use the **codegraph** skill to build a richer structural picture:
-- Check for `.codegraph/` directory; if absent, run `codegraph init -i` to index the project
+For any project, use the **codegraph** skill to build a richer structural picture.
+
+**Determine which exploration tools are available**, in priority order:
+1. **CodeGraph MCP** — Check for `.codegraph/` directory. If it exists, try
+   `codegraph_status` to verify the MCP server is running. If the MCP call fails
+   (server not found, tool not available), move to the next option.
+2. **CodeGraph CLI** — Run `codegraph status` in the terminal. If the binary
+   exists and the index is healthy, use CLI commands as fallback.
+3. **Standard tools** — If neither CodeGraph option is available, use Grep, Glob,
+   SemanticSearch, and file reads. The discovery goals below remain the same —
+   only the tools change. Do not retry a tool that already failed.
+
+If `.codegraph/` does not exist and CodeGraph is available, run `codegraph init -i` to index the project.
+
+**With CodeGraph available:**
 - Run `codegraph_status` for overview metrics (files, nodes, edges, breakdown by kind and language)
 - Use `codegraph_files` to map project structure (faster than filesystem scanning)
 - Use `codegraph_search` to discover key symbols (services, handlers, models, routes)
 - Identify layer boundaries by querying cross-file edges in the knowledge graph
 - Map high fan-in symbols (many callers) to understand critical code paths
 - Use `codegraph_callers` / `codegraph_callees` on entry points to trace request flows
+
+**Without CodeGraph:**
+- Use Glob to map the project structure and directory layout
+- Use Grep to discover key symbols (`class `, `interface `, `export function`, route patterns)
+- Use SemanticSearch to find domain concepts and architectural patterns
+- Read key files directly to understand entry points and data flow
 
 This gives you quantitative context that file browsing alone cannot provide. The knowledge graph persists for the session and can be reused in Phase 6 (Quality Gate).
 </instructions>

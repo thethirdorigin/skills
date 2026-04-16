@@ -4,16 +4,17 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 
 ## Skills
 
-| Skill | Type | What it covers |
-|-------|------|----------------|
-| **project-guide** | Workflow | 6-phase workflow for analysing any codebase and building features systematically. Orchestrates all other skills. Includes codegraph-based discovery and audit quality gate. |
-| **audit** | Workflow | Master code auditor. Detects the project stack, uses codegraph for structural analysis on all stacks, invokes language-specific sub-skills, and produces a severity-ranked findings report. |
-| **reviewpr** | Workflow | Deep code review for GitHub PRs. Delegates analysis to audit, then posts findings as line-specific comments. |
-| **grill-me** | Workflow | Stress-test a plan or design through relentless questioning. |
-| **codegraph** | Tool | Semantic code intelligence for all languages. MCP tools, CLI, database schema, and reusable SQL query patterns for exploring any codebase via a knowledge graph. Replaces grep/glob for symbol search, call tracing, and structural exploration. Used by audit and project-guide as a composable building block. |
-| **rust-best-practises** | Standards | ~280 rules across 20 categories. Error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, performance, project structure, linting, and anti-patterns. |
-| **react-best-practises** | Standards | 78 rules across 11 categories. Hooks, state, components, TypeScript, error handling, security, testing, accessibility, and anti-patterns. Complements Vercel performance skill. |
-| **prompt-best-practises** | Meta | Meta-skill for authoring other skills. XML structuring, examples, role assignment, agentic patterns. |
+| Skill                     | Type      | What it covers                                                                                                                                                                                                                                                                                                   |
+| ------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **project-guide**         | Workflow  | 6-phase workflow for analysing any codebase and building features systematically. Orchestrates all other skills. Includes codegraph-based discovery and audit quality gate.                                                                                                                                      |
+| **audit**                 | Workflow  | Master code auditor. Detects the project stack, uses codegraph for structural analysis on all stacks, invokes language-specific sub-skills, and produces a severity-ranked findings report.                                                                                                                      |
+| **reviewpr**              | Workflow  | Deep code review for GitHub PRs. Delegates analysis to audit, then posts findings as line-specific comments.                                                                                                                                                                                                     |
+| **grill-me**              | Workflow  | Stress-test a plan or design through relentless questioning.                                                                                                                                                                                                                                                     |
+| **spec**                  | Workflow  | Codebase-grounded feature specification. Uses codegraph to explore the project, then runs a structured interview where every question references real modules, patterns, and domain terms. Produces a SpecKit-compatible spec artifact.                                                                          |
+| **codegraph**             | Tool      | Semantic code intelligence for all languages. MCP tools, CLI, database schema, and reusable SQL query patterns for exploring any codebase via a knowledge graph. Replaces grep/glob for symbol search, call tracing, and structural exploration. Used by audit and project-guide as a composable building block. |
+| **rust-best-practises**   | Standards | ~280 rules across 20 categories. Error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, performance, project structure, linting, and anti-patterns.                                                                       |
+| **react-best-practises**  | Standards | 78 rules across 11 categories. Hooks, state, components, TypeScript, error handling, security, testing, accessibility, and anti-patterns. Complements Vercel performance skill.                                                                                                                                  |
+| **prompt-best-practises** | Meta      | Meta-skill for authoring other skills. XML structuring, examples, role assignment, agentic patterns.                                                                                                                                                                                                             |
 
 ## Installation
 
@@ -37,7 +38,7 @@ Symlink each skill into your global Claude Code skills directory:
 ```bash
 mkdir -p ~/.claude/skills
 
-for skill in project-guide audit reviewpr grill-me rust-best-practises \
+for skill in project-guide audit reviewpr grill-me spec rust-best-practises \
              react-best-practises codegraph prompt-best-practises \
              ascend-frontend find-skills; do
   ln -sf ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/$skill \
@@ -80,6 +81,7 @@ in the right order.
 ```
 
 This does three things:
+
 1. Symlinks `skill-activation.py` and `file-tracker.py` to `~/.claude/hooks/`
 2. Registers the hooks in `~/.claude/settings.json`
 3. Clears the manifest cache so it rebuilds on the next prompt
@@ -107,6 +109,7 @@ npx skills add vercel-labs/agent-skills
 ```
 
 This installs (per-project, into `.claude/skills/`):
+
 - `vercel-react-best-practices` -- React/Next.js performance optimisation (69 rules across 8 priority tiers)
 - `vercel-composition-patterns` -- Component composition patterns that scale
 - `web-design-guidelines` -- UI compliance auditing (100+ accessibility and UX rules)
@@ -155,8 +158,18 @@ audit (code quality orchestrator)
  +-  Cross-correlates findings, deduplicates, ranks by severity
  +-  Produces evidence-based report with file:line references
 
+spec (feature specification)
+ |  Loads codegraph via dependency
+ |
+ +-  Phase 1: Deep Discovery — indexes codebase with codegraph, reads
+ |   constitution, existing specs, architecture, domain symbols
+ +-  Phase 2: Codebase-Grounded Interview — every question references
+ |   real modules, patterns, and domain terms found via codegraph
+ +-  Phase 3: Spec Generation — synthesizes answers into SpecKit-format spec
+ +-  Phase 4: Handoff — guides user to /speckit.plan, /speckit.tasks, etc.
+
 codegraph (composable building block)
- +-  Invoked by audit, project-guide, or directly by user
+ +-  Invoked by audit, project-guide, spec, or directly by user
  +-  Semantic search, call graph, impact analysis, file structure
  +-  MCP tools (primary) or CLI + raw SQL (fallback)
  +-  Supports 17+ languages: TS, JS, Python, Go, Rust, Java, C#, ...
@@ -182,6 +195,9 @@ reviewpr
 project-guide
   -> codegraph
 
+spec
+  -> codegraph
+
 ascend-frontend
   (file-pattern: frontend/apps/*)
 
@@ -198,10 +214,10 @@ The `hooks/` directory contains generic Claude Code hooks that make skill
 composition work automatically. See [hooks/README.md](hooks/README.md) for
 full documentation.
 
-| Hook | Event | What it does |
-|------|-------|-------------|
-| `skill-activation.py` | UserPromptSubmit | Matches prompt against all skills' `triggers`, resolves `dependencies` transitively, injects Skill tool invocation instructions |
-| `file-tracker.py` | PostToolUse (Edit/Write) | Matches edited file paths against skills' `file-patterns`, suggests relevant skills |
+| Hook                  | Event                    | What it does                                                                                                                    |
+| --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `skill-activation.py` | UserPromptSubmit         | Matches prompt against all skills' `triggers`, resolves `dependencies` transitively, injects Skill tool invocation instructions |
+| `file-tracker.py`     | PostToolUse (Edit/Write) | Matches edited file paths against skills' `file-patterns`, suggests relevant skills                                             |
 
 **Key design**: No config file to maintain. The hooks auto-discover all
 SKILL.md files, parse their YAML frontmatter, and cache a manifest that
@@ -213,11 +229,11 @@ frontmatter fields is all that's required.
 ```yaml
 ---
 name: my-skill
-triggers:                 # phrases that activate this skill
+triggers: # phrases that activate this skill
   - audit this codebase
-dependencies:             # skills to load before this one
+dependencies: # skills to load before this one
   - codegraph
-file-patterns:            # file edits that suggest this skill
+file-patterns: # file edits that suggest this skill
   - .tsx
   - frontend/
 ---
@@ -227,19 +243,20 @@ file-patterns:            # file edits that suggest this skill
 
 Skills activate automatically based on what you're doing:
 
-| Trigger phrase | Skill activated |
-|----------------|-----------------|
-| "I need to add a Rust endpoint" | rust-best-practises |
-| "Create a new React component" | react-best-practises |
-| "Starting work on a new feature" | project-guide |
-| "What should I know about this project?" | project-guide |
-| "Audit this codebase" | audit (+ codegraph dependency) |
-| "Find code smells" | audit (+ codegraph dependency) |
-| "Review this PR" | reviewpr (+ audit + codegraph chain) |
-| "Grill me on this design" | grill-me |
-| "I want to create a new skill" | prompt-best-practises |
-| "Use codegraph" / "Query knowledge graph" / "Find symbol" | codegraph |
-| "Explore codebase" / "What calls this?" / "Trace callers" | codegraph |
+| Trigger phrase                                            | Skill activated                      |
+| --------------------------------------------------------- | ------------------------------------ |
+| "I need to add a Rust endpoint"                           | rust-best-practises                  |
+| "Create a new React component"                            | react-best-practises                 |
+| "Starting work on a new feature"                          | project-guide                        |
+| "What should I know about this project?"                  | project-guide                        |
+| "Audit this codebase"                                     | audit (+ codegraph dependency)       |
+| "Find code smells"                                        | audit (+ codegraph dependency)       |
+| "Review this PR"                                          | reviewpr (+ audit + codegraph chain) |
+| "Grill me on this design"                                 | grill-me                             |
+| "New feature" / "Write a spec" / "Define feature"         | spec (+ codegraph dependency)        |
+| "I want to create a new skill"                            | prompt-best-practises                |
+| "Use codegraph" / "Query knowledge graph" / "Find symbol" | codegraph                            |
+| "Explore codebase" / "What calls this?" / "Trace callers" | codegraph                            |
 
 ## Adding new skills
 
@@ -278,6 +295,9 @@ plugins/thethirdorigin-skills/
     audit/SKILL.md                    <- master code auditor
     reviewpr/SKILL.md                 <- PR review (delegates to audit)
     grill-me/SKILL.md                 <- design interviews
+    spec/
+      SKILL.md                        <- codebase-grounded feature specification
+      spec-template.md                <- SpecKit-compatible spec output template
     rust-best-practises/
       SKILL.md                        <- ~280 Rust rules across 20 categories
       rules/                          <- individual rule files (287 .md files)
@@ -295,6 +315,7 @@ plugins/thethirdorigin-skills/
 These skills were built from authoritative sources:
 
 **Rust**
+
 - [Rust API Guidelines Checklist](https://rust-lang.github.io/api-guidelines/checklist.html) -- C-\* rules for API design
 - [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/guidelines/index.html) -- 60+ M-\* production rules
 - [Rust Performance Book](https://nnethercote.github.io/perf-book/) -- Practical performance optimisation
@@ -305,9 +326,15 @@ These skills were built from authoritative sources:
 - [CodeGraph](https://github.com/colbymchenry/codegraph) -- Semantic code intelligence for all languages
 
 **React/TypeScript**
+
 - [React Rules](https://react.dev/reference/rules) -- Official component and hook rules
 - [freeCodeCamp React Best Practices](https://www.freecodecamp.org/news/best-practices-for-react/)
 - [Vercel React Best Practices](https://vercel.com/blog/introducing-react-best-practices)
 
+**Spec-Driven Development**
+
+- [GitHub SpecKit](https://github.com/github/spec-kit) -- Spec-driven development toolkit
+
 **Prompt Engineering**
+
 - [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)
