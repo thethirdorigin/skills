@@ -15,6 +15,7 @@ Private skills marketplace for Claude Code. Best practices, code quality, and sy
 | **rust-best-practises**   | Standards | ~280 rules across 20 categories. Error handling, ownership, memory optimisation, API design, async, compiler optimisation, type safety, unsafe, traits, naming, testing, docs, performance, project structure, linting, and anti-patterns.                                                                       |
 | **react-best-practises**  | Standards | 78 rules across 11 categories. Hooks, state, components, TypeScript, error handling, security, testing, accessibility, and anti-patterns. Complements Vercel performance skill.                                                                                                                                  |
 | **prompt-best-practises** | Meta      | Meta-skill for authoring other skills. XML structuring, examples, role assignment, agentic patterns.                                                                                                                                                                                                             |
+| **pr-issue-matcher**      | Workflow  | Given a PR URL, fetches the diff, pulls all open issues from the linked repo, and matches the PR to the best-fitting issue and epic with a scored confidence rating. If no good match exists, proposes a new issue with body template and `gh issue create` command. Works with any GitHub repository.           |
 
 ## Installation
 
@@ -40,7 +41,7 @@ mkdir -p ~/.claude/skills
 
 for skill in project-guide audit reviewpr grill-me spec rust-best-practises \
              react-best-practises codegraph prompt-best-practises \
-             ascend-frontend find-skills; do
+             ascend-frontend find-skills pr-issue-matcher; do
   ln -sf ~/github/thethirdorigin/skills/plugins/thethirdorigin-skills/skills/$skill \
          ~/.claude/skills/$skill
 done
@@ -183,6 +184,13 @@ reviewpr (PR wrapper)
  +-  Posts approved findings as inline GitHub comments
 
 prompt-best-practises -- used when creating or improving any of the above skills
+
+pr-issue-matcher (standalone)
+ +-  Fetches PR diff + file list via gh CLI
+ +-  Discovers issue/epic/label conventions from the repo at runtime
+ +-  Scores all open issues against the PR signal profile
+ +-  HIGH/MEDIUM/LOW confidence match with cited reasoning
+ +-  LOW confidence: proposes new issue with body template + gh issue create
 ```
 
 ### Dependency graph
@@ -200,6 +208,9 @@ spec
 
 ascend-frontend
   (file-pattern: frontend/apps/*)
+
+pr-issue-matcher
+  (standalone — no dependencies)
 
 react-best-practises
   (file-pattern: .tsx, .jsx, frontend/)
@@ -257,6 +268,8 @@ Skills activate automatically based on what you're doing:
 | "I want to create a new skill"                            | prompt-best-practises                |
 | "Use codegraph" / "Query knowledge graph" / "Find symbol" | codegraph                            |
 | "Explore codebase" / "What calls this?" / "Trace callers" | codegraph                            |
+| "Link this PR to an issue" / "What issue does this PR belong to?" | pr-issue-matcher            |
+| "Find the issue for this PR" / "Which epic does this PR belong to?" | pr-issue-matcher          |
 
 ## Adding new skills
 
@@ -308,6 +321,7 @@ plugins/thethirdorigin-skills/
     prompt-best-practises/SKILL.md    <- meta-skill for skill authoring
     ascend-frontend/SKILL.md          <- Ascend Platform frontend guide
     find-skills/SKILL.md              <- skill discovery helper
+    pr-issue-matcher/SKILL.md         <- PR-to-issue/epic matcher (any GitHub repo)
 ```
 
 ## Sources
