@@ -302,6 +302,7 @@ Tone guidelines:
 - For nit-prefixed IDs, keep it light: "Minor thing, but...", "Small nit:", "Tiny thing..."
 - Vary your phrasing across comments. Do not start every comment the same way.
 - Do NOT use structured labels like "**Critical**:", "**Suggested fix**:", or bold prefixes
+- Do NOT use em-dashes (—) anywhere in comments. Use commas, semicolons, periods, or parentheses instead.
 
 ### 5c. Write the full JSON payload and submit
 
